@@ -217,6 +217,17 @@ project:
   route-specific. Falls back to the rule-based matcher on any failure, so
   the chatbot never just breaks.
 
+**The suggestion chips are dynamic, not hardcoded** (`static/js/citizen_chat.js::buildSuggestions`).
+On page load they call `/api/weather` and build around:
+- The person's own home zone (set at signup, `users.zone`) if they have
+  one — "Risk in HSR Layout (your area)".
+- Otherwise, or in addition, whichever zone currently has the highest
+  live risk score — so a genuinely urgent situation elsewhere surfaces
+  even for someone whose own area is fine right now.
+- Two of the six general-safety topics, shuffled on every load, so a
+  returning visitor sees different ones instead of the same two chips
+  forever.
+
 ---
 
 ## 5. How the "AI" actually works

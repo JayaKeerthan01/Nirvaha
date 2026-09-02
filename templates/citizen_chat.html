@@ -8,17 +8,12 @@
 </div>
 
 <div class="big-card">
-  <div class="chat-suggestions">
-    <button class="chat-suggestion" data-q="What's the risk in my area?">What's the risk in my area?</button>
-    <button class="chat-suggestion" data-q="What's the safest evacuation route from Koramangala?">Evacuation route from Koramangala</button>
-    <button class="chat-suggestion" data-q="Nearest hospital to HSR Layout">Nearest hospital to HSR Layout</button>
-    <button class="chat-suggestion" data-q="What should I pack in an emergency kit?">Emergency kit checklist</button>
-    <button class="chat-suggestion" data-q="How do I purify water during a flood?">Purifying water</button>
-    <button class="chat-suggestion" data-q="What can you do?">What can you do?</button>
+  <div class="chat-suggestions" id="chat-suggestions">
+    <div class="empty-state" style="padding:8px 0;">Loading suggestions…</div>
   </div>
 
   <div class="chat-window" id="chat-window">
-    <div class="chat-bubble bot">Hi! Ask me anything about current risk, evacuation routes, or hospital contacts.</div>
+    <div class="chat-bubble bot">Hi! Ask me anything about current risk, evacuation routes, hospitals, or general safety prep.</div>
   </div>
 
   <div class="chat-input-row">
@@ -29,5 +24,8 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+  const HOME_ZONE = {{ home_zone|tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/citizen_chat.js') }}"></script>
 {% endblock %}

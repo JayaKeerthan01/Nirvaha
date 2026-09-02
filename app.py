@@ -322,7 +322,7 @@ def citizen_hospitals():
 @app.route("/citizen/chat")
 @login_required
 def citizen_chat():
-    return render_template("citizen_chat.html")
+    return render_template("citizen_chat.html", home_zone=session.get("zone"))
 
 
 @app.route("/api/citizen/chat", methods=["POST"])
