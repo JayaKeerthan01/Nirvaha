@@ -9,27 +9,33 @@
       <div class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2L3 6.5V12C3 17 6.75 21.5 12 23C17.25 21.5 21 17 21 12V6.5L12 2Z" stroke="#0B1220" stroke-width="1.8" stroke-linejoin="round"/>
-          <path d="M9 12l2 2 4-4" stroke="#0B1220" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 16C9 13.3 12 13.3 12 10.6C12 7.9 15 7.9 15 6.5" fill="none" stroke="#0B1220" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="15" cy="6.5" r="1.15" fill="#0B1220"/>
+          <circle cx="9" cy="16" r="1" fill="#0B1220"/>
         </svg>
       </div>
       <div>
-        <div class="brand-name">Sentinel Grid</div>
+        <div class="brand-name">Nirvaha</div>
         <div class="brand-sub">Response Command</div>
       </div>
     </div>
-    <a href="{{ url_for('login') }}" class="btn btn-ghost">Operator sign in</a>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('signup') }}" class="btn btn-ghost">Community sign up</a>
+      <a href="{{ url_for('login') }}" class="btn btn-ghost">Operator sign in</a>
+    </div>
   </nav>
 
   <section class="hero">
     <div class="hero-eyebrow"><span class="live-dot"></span> FIVE AGENTS, ONE COMMON OPERATING PICTURE</div>
     <h1>Coordinated disaster response, before the first siren sounds.</h1>
     <p>
-      Sentinel Grid links weather forecasting, road-network status, hospital capacity,
+      Nirvaha links weather forecasting, road-network status, hospital capacity,
       and rescue-team deployment into a single live decision layer — so agencies that
       normally work in isolation can act on the same picture, in the same minute.
     </p>
     <div class="hero-actions">
       <a href="{{ url_for('login') }}" class="btn btn-primary">Enter command dashboard →</a>
+      <a href="{{ url_for('signup') }}" class="btn btn-ghost">Or check risk near you →</a>
     </div>
   </section>
 

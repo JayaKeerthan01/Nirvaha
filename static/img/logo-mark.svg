@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="nirvahaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5EA8FF"/>
+      <stop offset="100%" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#nirvahaGrad)"/>
+  <path d="M32 12L14 21V37C14 48 21.5 57 32 61C42.5 57 50 48 50 37V21L32 12Z"
+        fill="none" stroke="#0B1220" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M21 42C21 36 28 36 28 30C28 24 35 24 35 18.5C35 15 39.5 15 42 12.5"
+        fill="none" stroke="#0B1220" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="42" cy="12.5" r="3" fill="#0B1220"/>
+  <circle cx="21" cy="42" r="2.6" fill="#0B1220"/>
+</svg>

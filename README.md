@@ -1,4 +1,4 @@
-# Sentinel Grid — Intelligent Multi-Agent Disaster Response System
+# Nirvaha — Intelligent Multi-Agent Disaster Response System
 
 A working Flask application that implements the multi-agent disaster response
 architecture: a **Weather Agent**, **Traffic Agent**, **Hospital Agent**, and
@@ -11,6 +11,17 @@ by realistic simulators so every screen has live, constantly-updating data
 from the moment you start it. Real API keys can be dropped in later (see
 [Going live with real data](#going-live-with-real-data)) without changing
 any other code.
+
+**Branding.** The name and logo are "Nirvaha" (protection / safe passage) —
+a shield containing a winding path to a destination point, echoing the
+evacuation-routing feature. The mark lives at
+`static/img/logo-mark.svg` (used as the favicon); the same shape is inlined
+directly in `templates/base.html`, `templates/citizen_base.html`, and
+`templates/index.html` next to the wordmark so it can pick up the
+gradient badge styling (`.brand-mark` in `static/css/style.css`) without an
+extra image request. To rebrand again later, that's the full list of
+places to touch — there's no other copy of the logo or name hiding
+anywhere else in the codebase.
 
 ---
 
@@ -56,7 +67,7 @@ Disaster-Response-System/
 │
 ├── templates/                 Jinja2 pages (dashboard, predictions, traffic, hospitals,
 │                               rescue, alerts, admin_zones, login, signup, citizen_*)
-├── static/css/style.css       Design system ("Sentinel Grid" command-center theme)
+├── static/css/style.css       Design system ("Nirvaha" command-center theme)
 ├── static/js/                 Per-page dashboard logic (polls the JSON API every 15s)
 ├── datasets/                  Generated training CSVs
 ├── models/                    Trained model files (.joblib)
@@ -161,7 +172,7 @@ team:
   an ETA
 - **`/citizen/hospitals`** — hospital list with tap-to-call contact buttons
   and live bed counts
-- **`/citizen/chat`** ("Ask Sentinel") — a chatbot answering plain-language
+- **`/citizen/chat`** ("Ask Nirvaha") — a chatbot answering plain-language
   questions about risk, evacuation, and hospitals
 
 **Important — this closed a real access-control gap.** Before this

@@ -141,7 +141,7 @@ def csrf_protect():
 @app.context_processor
 def inject_globals():
     return {
-        "app_name": "Sentinel Grid",
+        "app_name": "Nirvaha",
         "poll_interval_ms": Config.POLL_INTERVAL_MS,
         "current_user": session.get("user_name"),
         "current_role": session.get("role"),
