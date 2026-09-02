@@ -184,19 +184,38 @@ dispatch real rescue teams as an admin. Fixed with a new `staff_required`
 decorator (admin or operator, not citizen) now applied to the entire ops
 command center — see `app.py` for the full list of routes it protects.
 
-**The chatbot** (`agents/citizen_chat_agent.py`) answers only from the
-same live data the rest of the app already computes — it can't invent a
-risk level, hospital name, or phone number that isn't actually in the
-database. Two modes, matching the simulate-by-default pattern used
-elsewhere in this project:
+**The chatbot** (`agents/citizen_chat_agent.py`) checks three layers, in
+order:
 
-- **Default** — a small, zero-dependency keyword/intent matcher. Always
-  available, fully deterministic, unit tested
-  (`tests/test_citizen_chat.py`).
-- **`ANTHROPIC_API_KEY` set** — the same live context is handed to Claude
-  for a more natural free-form answer, constrained by a system prompt to
-  only use the provided data. Falls back to the rule-based matcher if the
-  call fails, so the chatbot never just breaks.
+1. **Meta / small talk** — greetings, "what can you do", thanks, goodbye.
+2. **Live-data lookups** — risk, evacuation, hospitals, emergency contacts.
+   Answered only from the same data the rest of the app already computes —
+   it can't invent a risk level, hospital name, or phone number that isn't
+   actually in the database.
+3. **General safety knowledge** (`FAQ_TOPICS` in that file) — emergency
+   kits, water purification, power outages, basic first aid, and
+   flood/cyclone/landslide/earthquake prep. This is genuinely static
+   information, not live data, and the UI labels it "General safety info,
+   not live data" rather than implying it was checked against current
+   conditions.
+
+Two modes, matching the simulate-by-default pattern used elsewhere in this
+project:
+
+- **Default** — a small, zero-dependency keyword/intent matcher covering
+  all three layers above. Always available, fully deterministic, unit
+  tested (`tests/test_citizen_chat.py`) — including a regression test for
+  a real bug caught while building this: a question like "how do I purify
+  water during a flood" was originally swallowed by the live-data risk
+  lookup (which matched on the word "flood") before ever reaching the
+  water-purification answer. Fixed by only treating a hazard word as a
+  live-data risk query when it's paired with an actual zone name.
+- **`ANTHROPIC_API_KEY` set** — the same live context, plus a note that
+  general safety questions are fair game to answer from Claude's own
+  knowledge, is handed to Claude for a more natural free-form answer.
+  Still constrained to only use the live data for anything zone/hospital/
+  route-specific. Falls back to the rule-based matcher on any failure, so
+  the chatbot never just breaks.
 
 ---
 

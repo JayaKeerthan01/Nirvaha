@@ -1,8 +1,14 @@
+const SOURCE_LABELS = {
+  claude: "Claude-assisted",
+  live_data: "Live data lookup",
+  general_knowledge: "General safety info, not live data",
+  assistant: "",
+};
+
 function appendBubble(text, who, source) {
   const win = document.getElementById("chat-window");
-  const sourceTag = source && who === "bot"
-    ? `<span class="chat-source">${source === "claude" ? "Claude-assisted" : "Live data lookup"}</span>`
-    : "";
+  const label = source ? SOURCE_LABELS[source] : "";
+  const sourceTag = label && who === "bot" ? `<span class="chat-source">${label}</span>` : "";
   win.appendChild(el(`<div class="chat-bubble ${who}">${text}${sourceTag}</div>`));
   win.scrollTop = win.scrollHeight;
 }

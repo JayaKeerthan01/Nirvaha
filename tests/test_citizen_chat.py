@@ -1,6 +1,6 @@
 import unittest
 
-from agents.citizen_chat_agent import find_zone
+from agents.citizen_chat_agent import find_zone, _match_faq, _rule_based_answer
 
 ZONES = [
     {"name": "HSR Layout"},
@@ -33,6 +33,62 @@ class TestFindZone(unittest.TestCase):
     def test_multi_word_zone_first_word_match(self):
         z = find_zone("evacuation route from electronic", ZONES)
         self.assertEqual(z["name"], "Electronic City")
+
+
+class TestMatchFaq(unittest.TestCase):
+    """_match_faq is a pure function (no DB, no live agents) so these run
+    without any app setup — the same property find_zone's tests rely on."""
+
+    def test_emergency_kit_topic_matches(self):
+        topic_id, ans = _match_faq("what should i pack in an emergency kit")
+        self.assertEqual(topic_id, "emergency_kit")
+        self.assertIn("water", ans.lower())
+
+    def test_water_purification_topic_matches(self):
+        topic_id, ans = _match_faq("how do i purify water during a flood")
+        self.assertEqual(topic_id, "water_purification")
+        self.assertIn("boil", ans.lower())
+
+    def test_earthquake_topic_notes_not_predicted(self):
+        topic_id, ans = _match_faq("earthquake safety tips")
+        self.assertEqual(topic_id, "earthquake_safety")
+        self.assertIn("aren't predicted", ans)
+
+    def test_unrelated_question_has_no_faq_match(self):
+        topic_id, ans = _match_faq("what time is it")
+        self.assertIsNone(topic_id)
+        self.assertIsNone(ans)
+
+
+class TestRuleBasedMetaAnswers(unittest.TestCase):
+    """Meta/small-talk branches return before touching the DB, so these
+    can run against an empty zones list with no live agents involved."""
+
+    def test_greeting(self):
+        ans, source = _rule_based_answer("hi", [])
+        self.assertIn("ask me", ans.lower())
+        self.assertEqual(source, "assistant")
+
+    def test_thanks(self):
+        ans, source = _rule_based_answer("thanks a lot", [])
+        self.assertIn("welcome", ans.lower())
+        self.assertEqual(source, "assistant")
+
+    def test_goodbye(self):
+        ans, source = _rule_based_answer("bye", [])
+        self.assertIn("safe", ans.lower())
+        self.assertEqual(source, "assistant")
+
+    def test_capabilities_question(self):
+        ans, source = _rule_based_answer("what can you do?", [])
+        self.assertIn("evacuation", ans.lower())
+        self.assertIn("emergency", ans.lower())
+        self.assertEqual(source, "assistant")
+
+    def test_about_app_question(self):
+        ans, source = _rule_based_answer("how does this app work", [])
+        self.assertIn("nirvaha", ans.lower())
+        self.assertEqual(source, "assistant")
 
 
 if __name__ == "__main__":
