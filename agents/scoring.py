@@ -25,6 +25,31 @@ def hospital_suitability(capacity_score, distance_km):
     return capacity_score * 100 - distance_km * 1.5
 
 
+# A disaster doesn't just create casualties in the affected zone — it can
+# just as easily damage, cut off, or overwhelm a hospital that happens to
+# sit inside a high-risk zone itself. Previously recommend_for_zone()
+# scored purely on capacity + distance with zero awareness of whether the
+# hospital's OWN location was safe, which meant a hospital in the middle
+# of a flood zone could still come back as the top pick for a nearby
+# disaster. This penalizes (rather than silently hides) that case, so a
+# human operator can see the risk and still override it if it's genuinely
+# the only option nearby.
+HOSPITAL_ACCESSIBILITY_PENALTY = {"Low": 0, "Medium": 30, "High": 80}
+HOSPITAL_ACCESSIBILITY_STATUS = {
+    "Low": "Operational",
+    "Medium": "Access may be delayed",
+    "High": "Likely unreachable — itself in a high-risk area",
+}
+
+
+def hospital_accessibility_penalty(hospital_zone_risk_level):
+    return HOSPITAL_ACCESSIBILITY_PENALTY.get(hospital_zone_risk_level, 0)
+
+
+def hospital_accessibility_status(hospital_zone_risk_level):
+    return HOSPITAL_ACCESSIBILITY_STATUS.get(hospital_zone_risk_level, "Operational")
+
+
 def rescue_priority_score(risk_level, density):
     """0..1 zone priority: weighted disaster severity + population density."""
     severity_weight = RISK_WEIGHT.get(risk_level, 0.2)

@@ -31,6 +31,7 @@ from database.db import (
 from utils.geo import haversine_km
 from agents.scoring import rescue_priority_score
 from agents.hospital_agent import hospital_agent
+from agents.weather_agent import weather_agent
 
 
 class RescueAgent:
@@ -115,6 +116,12 @@ class RescueAgent:
     def get_active_deployments(self):
         return get_active_deployments()
 
+    def _current_weather_by_zone(self):
+        """A fresh weather read for every deploy() call, so the hospital
+        pick reflects accessibility at the moment of dispatch — not a
+        stale snapshot from whenever the dashboard last polled."""
+        return {w["zone"]: w for w in weather_agent.assess_all_zones()}
+
     def deploy(self, zone, deployed_by=None):
         """Dispatches the recommended team for `zone` and reserves beds at
         the best-suited hospital. Returns the created deployment record, or
@@ -132,7 +139,7 @@ class RescueAgent:
         teams.sort(key=lambda t: t["_distance"])
         team = teams[0]
 
-        hospitals = hospital_agent.recommend_for_zone(zone_obj, top_n=1)
+        hospitals = hospital_agent.recommend_for_zone(zone_obj, top_n=1, weather_by_zone=self._current_weather_by_zone())
         hospital = hospitals[0] if hospitals else None
 
         beds_reserved = 0

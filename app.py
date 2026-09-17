@@ -362,7 +362,8 @@ def api_traffic():
 @app.route("/api/hospitals")
 @login_required
 def api_hospitals():
-    return jsonify(hospital_agent.get_all_hospitals())
+    weather_by_zone = {w["zone"]: w for w in weather_agent.assess_all_zones()}
+    return jsonify(hospital_agent.get_all_hospitals_with_status(weather_by_zone))
 
 
 @app.route("/api/rescue")

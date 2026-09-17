@@ -38,7 +38,7 @@ class CoordinatorAgent:
         # Build a hospital recommendation for the single highest-priority zone
         top_zone_name = zone_priorities[0]["zone"] if zone_priorities else None
         top_zone = next((z for z in get_zones() if z["name"] == top_zone_name), None)
-        recommended_hospitals = hospital_agent.recommend_for_zone(top_zone) if top_zone else []
+        recommended_hospitals = hospital_agent.recommend_for_zone(top_zone, weather_by_zone=weather_by_zone) if top_zone else []
 
         recommended_route = None
         if top_zone:

@@ -128,12 +128,17 @@ function renderHospitalRecs(hospitals) {
   }
   container.innerHTML = "";
   hospitals.forEach((h) => {
+    const atRisk = h.accessibility_risk && h.accessibility_risk !== "Low";
+    const warning = atRisk
+      ? `<div class="zone-meta" style="color:var(--alert-warning); margin-top:2px;">⚠ ${h.accessibility_status}</div>`
+      : "";
     container.appendChild(
       el(`
-        <div class="zone-row" style="margin-bottom:10px;">
+        <div class="zone-row" style="margin-bottom:10px; ${atRisk ? "border-color:rgba(255,178,56,0.4);" : ""}">
           <div>
             <div class="zone-name">${h.hospital_name}</div>
             <div class="zone-meta">${h.distance_km} km · ${h.beds_available}/${h.beds_total} beds · ${h.icu_available} ICU · ${h.doctors_available} doctors</div>
+            ${warning}
           </div>
           <span class="badge badge-info">${h.suitability}</span>
         </div>

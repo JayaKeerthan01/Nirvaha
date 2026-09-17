@@ -3,6 +3,8 @@ import unittest
 from agents.scoring import (
     hospital_capacity_score,
     hospital_suitability,
+    hospital_accessibility_penalty,
+    hospital_accessibility_status,
     rescue_priority_score,
 )
 
@@ -41,6 +43,40 @@ class TestHospitalSuitability(unittest.TestCase):
         high_cap = hospital_suitability(capacity_score=0.9, distance_km=5)
         low_cap = hospital_suitability(capacity_score=0.1, distance_km=5)
         self.assertGreater(high_cap, low_cap)
+
+
+class TestHospitalAccessibility(unittest.TestCase):
+    """A hospital sitting inside a High-risk zone can be just as cut off
+    as the people it's meant to treat — these guard that a hospital's OWN
+    zone risk actually suppresses its suitability, not just the requesting
+    zone's risk (which was the entire original gap)."""
+
+    def test_high_risk_zone_penalizes_more_than_medium(self):
+        self.assertGreater(hospital_accessibility_penalty("High"), hospital_accessibility_penalty("Medium"))
+
+    def test_low_risk_zone_has_no_penalty(self):
+        self.assertEqual(hospital_accessibility_penalty("Low"), 0)
+
+    def test_unknown_risk_defaults_to_no_penalty(self):
+        # Same fallback philosophy as RISK_WEIGHT.get(..., 0.2) elsewhere,
+        # but here "unknown" should NOT be treated as dangerous by default
+        # — a hospital shouldn't be penalized just because weather data for
+        # its zone wasn't available this request.
+        self.assertEqual(hospital_accessibility_penalty("Unknown"), 0)
+
+    def test_penalty_can_flip_which_hospital_is_more_suitable(self):
+        # The actual bug this closes: a nearby hospital in a High-risk zone
+        # could still outrank a farther hospital in a safe zone purely on
+        # capacity + distance, with zero awareness the near one might be
+        # unreachable. After the penalty, the safe one should win.
+        near_but_at_risk = hospital_suitability(capacity_score=0.6, distance_km=2) - hospital_accessibility_penalty("High")
+        far_but_safe = hospital_suitability(capacity_score=0.5, distance_km=15) - hospital_accessibility_penalty("Low")
+        self.assertGreater(far_but_safe, near_but_at_risk)
+
+    def test_status_text_matches_risk_level(self):
+        self.assertEqual(hospital_accessibility_status("Low"), "Operational")
+        self.assertIn("unreachable", hospital_accessibility_status("High").lower())
+        self.assertIn("delayed", hospital_accessibility_status("Medium").lower())
 
 
 class TestRescuePriorityScore(unittest.TestCase):

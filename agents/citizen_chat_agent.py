@@ -255,13 +255,18 @@ def _rule_based_answer(question, zones):
 
     if hospital_hit:
         if zone:
-            recs = hospital_agent.recommend_for_zone(zone, top_n=2)
+            weather_by_zone = {w["zone"]: w for w in weather}
+            recs = hospital_agent.recommend_for_zone(zone, top_n=2, weather_by_zone=weather_by_zone)
             if recs:
-                parts = [
-                    f"{h['hospital_name']} ({h['distance_km']} km away, "
-                    f"{h['beds_available']} beds free) — call {h['contact']}"
-                    for h in recs
-                ]
+                parts = []
+                for h in recs:
+                    part = (
+                        f"{h['hospital_name']} ({h['distance_km']} km away, "
+                        f"{h['beds_available']} beds free) — call {h['contact']}"
+                    )
+                    if h["accessibility_risk"] != "Low":
+                        part += f" [⚠ {h['accessibility_status']}]"
+                    parts.append(part)
                 return "Nearest hospitals for you: " + "; ".join(parts) + ".", "live_data"
         parts = [f"{h['hospital_name']} — {h['contact']}" for h in hospitals]
         return "Hospital contacts: " + "; ".join(parts) + ".", "live_data"

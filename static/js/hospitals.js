@@ -5,6 +5,14 @@ function bedBadge(available, total) {
   return "badge-high";
 }
 
+function accessibilityBadge(risk) {
+  return { Low: "badge-low", Medium: "badge-medium", High: "badge-high" }[risk] || "badge-low";
+}
+
+function accessibilityShortLabel(risk) {
+  return { Low: "Operational", Medium: "Delayed access", High: "Unreachable" }[risk] || "Operational";
+}
+
 async function renderHospitals() {
   const rows = document.getElementById("hospital-rows");
   try {
@@ -16,6 +24,7 @@ async function renderHospitals() {
           <tr>
             <td><b>${h.hospital_name}</b></td>
             <td>${h.location}</td>
+            <td><span class="badge ${accessibilityBadge(h.accessibility_risk)}" title="${h.accessibility_status}">${accessibilityShortLabel(h.accessibility_risk)}</span></td>
             <td><span class="badge ${bedBadge(h.beds_available, h.beds_total)}">${h.beds_available} / ${h.beds_total}</span></td>
             <td class="mono">${h.icu_available}</td>
             <td class="mono">${h.doctors_available}</td>

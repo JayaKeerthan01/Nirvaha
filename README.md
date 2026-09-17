@@ -432,6 +432,33 @@ the pure-function unit tests, which run with zero extra dependencies via
 - `users.zone` (nullable) added via an idempotent migration so existing
   database files upgrade in place without deleting them.
 
+**Hospital accessibility (a real gap, not just a demo polish)**
+- `hospital_agent.recommend_for_zone()` previously scored purely on bed
+  capacity + distance, with zero awareness of whether the hospital's OWN
+  location was safe. A disaster doesn't stop at the affected zone's
+  border — a hospital sitting inside a High-risk flood/cyclone/landslide
+  zone can be just as cut off as the people it's meant to treat, and the
+  old scoring would still recommend it as the top pick purely because it
+  was close.
+- Added `agents/scoring.py::hospital_accessibility_penalty/_status`,
+  computed from the hospital's own zone risk (not the requesting zone's),
+  and threaded `weather_by_zone` through every caller: the Coordinator
+  Agent, `rescue_agent.deploy()` (so an actual dispatch reserves beds at a
+  hospital that's actually reachable), and the citizen chatbot's hospital
+  answers. `/api/hospitals` now annotates every hospital the same way, so
+  both the ops Hospitals page and the citizen Hospitals page show it too.
+- Deliberately a penalty + visible "Unreachable" / "Delayed access" flag,
+  not a silent exclusion — if every nearby hospital happens to be
+  compromised, a human operator can still see and choose the least-bad
+  option rather than the system hiding all of them.
+- Verified against real hospital rows in the database with a forced
+  scenario (HSR Layout at High flood risk): the two hospitals actually
+  located there dropped from suitability scores of ~55 to negative
+  numbers and were correctly excluded from the top recommendations on the
+  dashboard, the ops Hospitals table, the citizen Hospitals page, and the
+  chatbot — confirmed with real screenshots of all four, not just the
+  underlying function call.
+
 ## 10. Roadmap — not done in this pass, and why
 
 These were flagged as worth doing but need infrastructure/credentials this
