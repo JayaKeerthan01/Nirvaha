@@ -34,6 +34,38 @@ class TestFindZone(unittest.TestCase):
         z = find_zone("evacuation route from electronic", ZONES)
         self.assertEqual(z["name"], "Electronic City")
 
+    def test_typo_resolves_via_fuzzy_match(self):
+        # "Koramangla" (missing the second 'a') used to fail outright and
+        # fall through to the generic "I don't understand" fallback.
+        z = find_zone("what's the risk in Koramangla", ZONES)
+        self.assertEqual(z["name"], "Koramangala")
+
+    def test_minor_typo_in_first_word_resolves(self):
+        z = find_zone("evacuation route from Bellandurr", ZONES)
+        self.assertEqual(z["name"], "Bellandur")
+
+    def test_short_word_does_not_trigger_fuzzy_match(self):
+        # Fuzzy matching only kicks in for words of length >= 4, so short
+        # common words can't spuriously resolve to a zone name.
+        z = find_zone("is it ok to go out", ZONES)
+        self.assertIsNone(z)
+
+    def test_ambiguous_first_word_is_not_guessed(self):
+        # If two zones ever share a first word (possible once admins can
+        # add zones dynamically via /admin/zones), guessing which one was
+        # meant would silently answer about the wrong one some of the
+        # time. Ambiguous should mean "no confident match", not a guess.
+        ambiguous_zones = ZONES + [{"name": "Electronic Hub"}]
+        z = find_zone("what's happening in electronic", ambiguous_zones)
+        self.assertIsNone(z)
+
+    def test_full_name_still_resolves_even_with_ambiguous_first_word(self):
+        # The ambiguity guard only applies to the loose first-word
+        # fallback — an exact full-name mention always wins outright.
+        ambiguous_zones = ZONES + [{"name": "Electronic Hub"}]
+        z = find_zone("risk in Electronic Hub", ambiguous_zones)
+        self.assertEqual(z["name"], "Electronic Hub")
+
 
 class TestMatchFaq(unittest.TestCase):
     """_match_faq is a pure function (no DB, no live agents) so these run

@@ -59,6 +59,21 @@ class Config:
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
     ANTHROPIC_CHAT_MODEL = os.environ.get("ANTHROPIC_CHAT_MODEL", "claude-sonnet-4-6")
 
+    # Email verification for citizen signup. Leave SMTP_* blank to run in
+    # SIMULATION MODE — the verification code is shown directly on the
+    # /verify-email page instead of actually being emailed, so signup
+    # still works end-to-end with zero external services configured.
+    SMTP_HOST = os.environ.get("SMTP_HOST", "")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587") or 587)
+    SMTP_USER = os.environ.get("SMTP_USER", "")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+    SMTP_FROM = os.environ.get("SMTP_FROM", "")
+    VERIFICATION_CODE_EXPIRY_MINUTES = 15
+
+    # A citizen counts as "currently active" on the admin dashboard if
+    # they've made an authenticated request within this window.
+    ACTIVE_USER_WINDOW_MINUTES = 5
+
     # Default map center (HSR Layout, Bangalore) — change to your region
     DEFAULT_LAT = 12.9121
     DEFAULT_LON = 77.6446

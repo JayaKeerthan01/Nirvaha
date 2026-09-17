@@ -749,3 +749,54 @@ tr:last-child td { border-bottom: none; }
   .citizen-content { padding: 20px 16px 48px; }
   .risk-card-lg, .hospital-card-lg { flex-direction: column; align-items: flex-start; }
 }
+
+/* ---------------------------------- role-based themes --------------------
+   Everything using var(--signal-info) — the active-nav highlight, primary
+   buttons, badge-info, focus rings, the brand-mark gradient — recolors per
+   role via this one variable, so admin/operator/citizen are visually
+   distinct at a glance without three separate stylesheets. The semantic
+   risk colors (--alert-critical/warning/nominal) are deliberately left
+   alone in all three — Low/Medium/High must mean the same thing regardless
+   of who's looking at it. */
+
+body.role-admin {
+  --signal-info: #8B7CFF;         /* violet — "control tower" authority */
+  --signal-info-dim: rgba(139, 124, 255, 0.15);
+}
+
+body.role-operator {
+  --signal-info: #FF8A3D;         /* orange — active field dispatch */
+  --signal-info-dim: rgba(255, 138, 61, 0.15);
+}
+
+body.role-citizen {
+  --signal-info: #38BDF8;         /* sky blue — approachable, public-facing */
+  --signal-info-dim: rgba(56, 189, 248, 0.15);
+}
+
+/* ---------------------------------- map polish ---------------------------
+   Markers are now updated in place (see renderMap in dashboard.js) instead
+   of cleared and recreated every poll, so this transition is what actually
+   turns a risk-level change into a smooth color/size fade instead of a
+   jarring snap. Leaflet renders circleMarkers as plain SVG <path>, which is
+   what .leaflet-interactive targets. */
+.leaflet-interactive {
+  transition: fill 0.6s ease, stroke 0.6s ease, r 0.4s ease;
+}
+
+@keyframes risk-pulse-high {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(255, 84, 112, 0)); }
+  50% { filter: drop-shadow(0 0 6px rgba(255, 84, 112, 0.85)); }
+}
+.risk-pulse-high {
+  animation: risk-pulse-high 1.8s ease-in-out infinite;
+}
+
+.leaflet-container { background: var(--ink-950) !important; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--ink-850);
+  color: var(--signal-100);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.leaflet-popup-content { font-size: 13px; line-height: 1.5; font-family: var(--font-body); }
+.leaflet-popup-content b { font-family: var(--font-display); }

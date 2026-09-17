@@ -156,14 +156,21 @@ def init_db(seed=True):
     )
     conn.commit()
 
-    # Lightweight migration for DBs created before `users.zone` existed.
+    # Lightweight migrations for DBs created before these columns existed.
     # CREATE TABLE IF NOT EXISTS won't add columns to an already-existing
     # table, so this covers upgrading an existing database file in place.
-    try:
-        cur.execute("ALTER TABLE users ADD COLUMN zone TEXT")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass  # column already exists
+    for statement in (
+        "ALTER TABLE users ADD COLUMN zone TEXT",
+        "ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN verification_code_hash TEXT",
+        "ALTER TABLE users ADD COLUMN verification_expires TEXT",
+        "ALTER TABLE users ADD COLUMN last_seen TEXT",
+    ):
+        try:
+            cur.execute(statement)
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
     if seed:
         _seed_demo_data(conn)
@@ -177,17 +184,17 @@ def _seed_demo_data(conn):
     cur.execute("SELECT COUNT(*) AS c FROM users")
     if cur.fetchone()["c"] == 0:
         cur.execute(
-            "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+            "INSERT INTO users (name, email, password_hash, role, email_verified) VALUES (?, ?, ?, ?, 1)",
             ("Duty Officer", "admin@disaster-response.local",
              generate_password_hash("admin123"), "admin"),
         )
         cur.execute(
-            "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+            "INSERT INTO users (name, email, password_hash, role, email_verified) VALUES (?, ?, ?, ?, 1)",
             ("Field Operator", "operator@disaster-response.local",
              generate_password_hash("operator123"), "operator"),
         )
         cur.execute(
-            "INSERT INTO users (name, email, password_hash, role, zone) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO users (name, email, password_hash, role, zone, email_verified) VALUES (?, ?, ?, ?, ?, 1)",
             ("Resident", "resident@disaster-response.local",
              generate_password_hash("resident123"), "citizen", "HSR Layout"),
         )
@@ -393,8 +400,88 @@ def get_user_by_email(email):
 def create_citizen(name, email, password_hash, zone=None):
     """Public signup always creates role='citizen' — there is no way to
     self-register as admin/operator through this function; those accounts
-    are only ever created by seeding or directly in the database."""
+    are only ever created by seeding or directly in the database. Starts
+    unverified; see set_verification_code()/mark_email_verified()."""
     return query(
-        "INSERT INTO users (name, email, password_hash, role, zone) VALUES (?, ?, ?, 'citizen', ?)",
+        "INSERT INTO users (name, email, password_hash, role, zone, email_verified) "
+        "VALUES (?, ?, ?, 'citizen', ?, 0)",
         (name, email, password_hash, zone),
+    )
+
+
+def get_user_by_id(user_id):
+    return query("SELECT * FROM users WHERE id = ?", (user_id,), fetchone=True)
+
+
+# ------------------------------------------------- email verification -----
+
+def set_verification_code(user_id, code_hash, expires_at):
+    query(
+        "UPDATE users SET verification_code_hash = ?, verification_expires = ? WHERE id = ?",
+        (code_hash, expires_at, user_id),
+    )
+
+
+def check_verification_code(user_id, code_hash):
+    """Returns True only if the hash matches AND the code hasn't expired.
+    Does not consume the code — call mark_email_verified() afterward."""
+    user = get_user_by_id(user_id)
+    if not user or not user["verification_code_hash"]:
+        return False
+    if user["verification_code_hash"] != code_hash:
+        return False
+    if not user["verification_expires"]:
+        return False
+    return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") <= user["verification_expires"]
+
+
+def mark_email_verified(user_id):
+    query(
+        "UPDATE users SET email_verified = 1, verification_code_hash = NULL, "
+        "verification_expires = NULL WHERE id = ?",
+        (user_id,),
+    )
+
+
+# ------------------------------------------------------- active users -----
+
+def touch_last_seen(user_id):
+    query(
+        "UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?",
+        (user_id,),
+    )
+
+
+def count_active_citizens(minutes=5):
+    """"Active" = a citizen account whose last_seen falls within the
+    window — updated on every authenticated request via
+    app.py::touch_activity, so this reflects genuinely open sessions, not
+    just "logged in at some point"."""
+    cutoff = (datetime.utcnow() - timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M:%S")
+    row = query(
+        "SELECT COUNT(*) AS c FROM users WHERE role = 'citizen' AND last_seen >= ?",
+        (cutoff,),
+        fetchone=True,
+    )
+    return row["c"] if row else 0
+
+
+def citizen_account_stats():
+    total = query("SELECT COUNT(*) AS c FROM users WHERE role = 'citizen'", fetchone=True)["c"]
+    verified = query(
+        "SELECT COUNT(*) AS c FROM users WHERE role = 'citizen' AND email_verified = 1",
+        fetchone=True,
+    )["c"]
+    return {
+        "total_citizens": total,
+        "verified_citizens": verified,
+        "active_now": count_active_citizens(),
+    }
+
+
+def get_recent_citizens(limit=25):
+    return query(
+        "SELECT id, name, email, zone, email_verified, last_seen, created_at "
+        "FROM users WHERE role = 'citizen' ORDER BY created_at DESC LIMIT ?",
+        (limit,),
     )

@@ -41,7 +41,10 @@ full write-up. Summary of what changed in this file specifically:
 
 import logging
 import secrets
+import hashlib
+import re
 from functools import wraps
+from datetime import datetime, timedelta
 
 from flask import (
     Flask, render_template, redirect, url_for, session, request,
@@ -53,7 +56,9 @@ from config import Config, DEFAULT_SECRET_KEY
 from database.db import (
     init_db, query, get_zones, add_zone, delete_zone,
     get_recent_disasters, record_login_attempt, count_recent_failed_attempts,
-    log_alert, get_user_by_email, create_citizen,
+    log_alert, get_user_by_email, get_user_by_id, create_citizen,
+    set_verification_code, check_verification_code, mark_email_verified,
+    touch_last_seen, citizen_account_stats, get_recent_citizens,
 )
 from agents.weather_agent import weather_agent
 from agents.traffic_agent import traffic_agent
@@ -61,6 +66,7 @@ from agents.hospital_agent import hospital_agent
 from agents.rescue_agent import rescue_agent
 from agents.coordinator_agent import coordinator_agent
 from agents.citizen_chat_agent import answer as chat_answer
+from api.email_api import send_verification_email
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -138,6 +144,36 @@ def csrf_protect():
         abort(400, description="Missing or invalid CSRF token. Reload the page and try again.")
 
 
+@app.before_request
+def touch_activity():
+    """Updates users.last_seen on every authenticated request. This is
+    what count_active_citizens() in the admin dashboard actually measures
+    — genuinely open sessions making requests, not just "has an account"
+    or "logged in at some point"."""
+    user_id = session.get("user_id")
+    if user_id:
+        touch_last_seen(user_id)
+
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def hash_code(code):
+    return hashlib.sha256(code.encode()).hexdigest()
+
+
+def issue_verification_code(user_id, email, name):
+    """Generates a fresh 6-digit code, stores its hash, and attempts to
+    email it. Returns the plaintext code ONLY when running in simulation
+    mode (no SMTP configured) so the caller can display it on-screen —
+    never returned when a real email was actually sent."""
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    expires_at = (datetime.utcnow() + timedelta(minutes=Config.VERIFICATION_CODE_EXPIRY_MINUTES)).strftime("%Y-%m-%d %H:%M:%S")
+    set_verification_code(user_id, hash_code(code), expires_at)
+    really_sent = send_verification_email(email, name, code)
+    return None if really_sent else code
+
+
 @app.context_processor
 def inject_globals():
     return {
@@ -175,6 +211,15 @@ def login():
         record_login_attempt(ip, email, success)
 
         if success:
+            # Verification is only required for self-registered citizen
+            # accounts — admin/operator are provisioned directly (seeded
+            # or created in the database), never through the public
+            # /signup form, so there's no unverified-inbox risk to guard
+            # against for them.
+            if user["role"] == "citizen" and not user["email_verified"]:
+                flash("Please verify your email before signing in.", "error")
+                return redirect(url_for("verify_email", email=email))
+
             session["user_id"] = user["id"]
             session["user_name"] = user["name"]
             session["role"] = user["role"]
@@ -187,9 +232,10 @@ def login():
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
-    """Public self-service signup — always creates a 'citizen' role account.
-    There is no path from this form to admin/operator; those are only ever
-    created by seeding or directly in the database."""
+    """Public self-service signup — always creates a 'citizen' role
+    account, unverified. There is no path from this form to admin/operator;
+    those are only ever created by seeding or directly in the database.
+    Does NOT log the person in — see /verify-email for that."""
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
@@ -199,8 +245,8 @@ def signup():
         errors = []
         if not name:
             errors.append("Name is required.")
-        if not email or "@" not in email:
-            errors.append("A valid email is required.")
+        if not email or not EMAIL_RE.match(email):
+            errors.append("Enter a valid email address (e.g. name@example.com).")
         if len(password) < 8:
             errors.append("Password must be at least 8 characters.")
         if not errors and get_user_by_email(email):
@@ -212,14 +258,55 @@ def signup():
             return render_template("signup.html", zones=get_zones(), name=name, email=email, zone=zone)
 
         user_id = create_citizen(name, email, generate_password_hash(password), zone)
-        session["user_id"] = user_id
-        session["user_name"] = name
-        session["role"] = "citizen"
-        session["zone"] = zone
-        flash(f"Welcome, {name}. Your account is ready.", "success")
-        return redirect(url_for("citizen_home"))
+        dev_code = issue_verification_code(user_id, email, name)
+        flash(f"Almost done, {name} — enter the verification code we sent to {email}.", "success")
+        return redirect(url_for("verify_email", email=email, dev_code=dev_code) if dev_code else url_for("verify_email", email=email))
 
     return render_template("signup.html", zones=get_zones())
+
+
+@app.route("/verify-email", methods=["GET", "POST"])
+def verify_email():
+    email = (request.args.get("email") or request.form.get("email") or "").strip().lower()
+    dev_code = request.args.get("dev_code")  # simulation-mode only, never set for a real send
+
+    if request.method == "POST":
+        user = get_user_by_email(email)
+        submitted = "".join(request.form.get(f"digit{i}", "") for i in range(1, 7)) or request.form.get("code", "").strip()
+
+        if not user or user["role"] != "citizen":
+            flash("We couldn't find that account.", "error")
+        elif user["email_verified"]:
+            flash("That email is already verified — you can sign in.", "success")
+            return redirect(url_for("login"))
+        elif check_verification_code(user["id"], hash_code(submitted)):
+            mark_email_verified(user["id"])
+            session["user_id"] = user["id"]
+            session["user_name"] = user["name"]
+            session["role"] = "citizen"
+            session["zone"] = user["zone"]
+            flash("Email verified — welcome to Nirvaha.", "success")
+            return redirect(url_for("citizen_home"))
+        else:
+            flash("That code is incorrect or has expired. Try again or resend it.", "error")
+
+    return render_template("verify_email.html", email=email, dev_code=dev_code)
+
+
+@app.route("/resend-code", methods=["POST"])
+def resend_code():
+    email = (request.form.get("email") or "").strip().lower()
+    user = get_user_by_email(email)
+    if not user or user["role"] != "citizen":
+        flash("We couldn't find that account.", "error")
+        return redirect(url_for("signup"))
+    if user["email_verified"]:
+        flash("That email is already verified — you can sign in.", "success")
+        return redirect(url_for("login"))
+
+    dev_code = issue_verification_code(user["id"], email, user["name"])
+    flash("A new code has been sent.", "success")
+    return redirect(url_for("verify_email", email=email, dev_code=dev_code) if dev_code else url_for("verify_email", email=email))
 
 
 @app.route("/logout")
@@ -294,6 +381,26 @@ def admin_delete_zone(zone_id):
     delete_zone(zone_id)
     flash("Zone removed.", "success")
     return redirect(url_for("admin_zones"))
+
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    return render_template(
+        "admin_users.html",
+        stats=citizen_account_stats(),
+        citizens=get_recent_citizens(),
+        active_window=Config.ACTIVE_USER_WINDOW_MINUTES,
+    )
+
+
+@app.route("/api/admin/users")
+@admin_required
+def api_admin_users():
+    return jsonify({
+        "stats": citizen_account_stats(),
+        "citizens": get_recent_citizens(),
+    })
 
 
 # --------------------------------------------------------- citizen pages ---

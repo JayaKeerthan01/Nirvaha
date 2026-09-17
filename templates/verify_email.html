@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>Verify your email</h1>
+      <div class="sub">We sent a 6-digit code to <strong>{{ email }}</strong>.</div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="{{ 'flash-error' if category == 'error' else 'flash-success' }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% if dev_code %}
+      <div class="hint-box" style="border-color:rgba(255,178,56,0.4); background:var(--alert-warning-dim);">
+        <strong style="color:var(--alert-warning);">DEV MODE — no email service configured.</strong><br>
+        Since <span class="mono">SMTP_HOST</span> isn't set, the code is shown here directly instead
+        of actually being emailed. Your code: <span class="mono" style="font-size:16px; letter-spacing:0.15em;">{{ dev_code }}</span>
+      </div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('verify_email') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="email" value="{{ email }}">
+        <div class="field">
+          <label for="code">6-digit verification code</label>
+          <input type="text" id="code" name="code" required autofocus maxlength="6"
+                 pattern="[0-9]{6}" inputmode="numeric" placeholder="000000"
+                 style="font-family:var(--font-mono); font-size:20px; letter-spacing:0.3em; text-align:center;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Verify</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('resend_code') }}" style="margin-top:10px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="email" value="{{ email }}">
+        <button type="submit" class="btn btn-ghost" style="width:100%; justify-content:center;">Resend code</button>
+      </form>
+
+      <div class="hint-box">
+        Codes expire after {{ config.VERIFICATION_CODE_EXPIRY_MINUTES }} minutes.
+        This step only applies to community accounts — operator and admin
+        accounts are provisioned directly and skip it.
+      </div>
+      <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--fog-300);">
+        Wrong email? <a href="{{ url_for('signup') }}" style="color:var(--signal-info);">Start over</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

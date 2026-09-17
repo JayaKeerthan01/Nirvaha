@@ -3,7 +3,7 @@
 <head>
   {% include "_head.html" %}
 </head>
-<body>
+<body class="role-{{ current_role or 'citizen' }}">
   <div class="citizen-shell">
     <header class="citizen-topnav">
       <a href="{{ url_for('citizen_home') }}" class="citizen-brand">

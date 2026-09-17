@@ -26,6 +26,7 @@ project (api/weather_api.py, api/maps_api.py):
 """
 
 import re
+import difflib
 
 from config import Config
 from database.db import get_zones
@@ -152,18 +153,64 @@ def _match_faq(q):
 
 # ------------------------------------------------------------ zone lookup --
 
+def _has_any(text, phrases):
+    """Word-boundary phrase matching — stricter than `phrase in text`,
+    which could technically match a phrase hiding inside a longer unrelated
+    word. Multi-word phrases (e.g. "how bad") still work: \\b anchors on
+    the first and last word of the phrase."""
+    return any(re.search(r"\b" + re.escape(p) + r"\b", text) for p in phrases)
+
+
 def find_zone(text, zones):
-    """Loose zone-name lookup: full name match first, then first-word match
-    (so "hsr" matches "HSR Layout"). Pure function — no I/O — so it's
-    tested directly in tests/test_citizen_chat.py without a live DB."""
+    """Zone-name lookup, in order of confidence:
+      1. Exact full-name substring match.
+      2. First-word match ("hsr" -> "HSR Layout") — but ONLY when exactly
+         one zone starts with that word. Zones are added dynamically via
+         /admin/zones, so if an admin ever adds e.g. both "Electronic City"
+         and "Electronic Hub", guessing which one "electronic" meant would
+         silently answer about the wrong one half the time. Ambiguous is
+         worse than no match here, so it's skipped rather than guessed.
+      3. Fuzzy match (typo tolerance) via difflib, e.g. "Koramangla" or
+         "bellandur" with a dropped/swapped letter still resolves.
+    Pure function — no I/O — so it's tested directly in
+    tests/test_citizen_chat.py without a live DB.
+    """
     text_l = text.lower()
+
     for z in zones:
         if z["name"].lower() in text_l:
             return z
+
+    first_words = {}
     for z in zones:
-        first_word = z["name"].split()[0].lower()
-        if first_word and first_word in text_l:
-            return z
+        fw = z["name"].split()[0].lower()
+        first_words.setdefault(fw, []).append(z)
+    for fw, matches in first_words.items():
+        if fw and len(matches) == 1 and fw in text_l:
+            return matches[0]
+
+    words = re.findall(r"[a-z]+", text_l)
+    for word in words:
+        if len(word) < 4:
+            continue  # too short for a fuzzy match to mean anything
+        candidates = {z["name"].lower(): z for z in zones}
+        for fw, matches in first_words.items():
+            if fw and len(matches) == 1:
+                candidates[fw] = matches[0]
+        # Ask for several close matches, not just the top one — a short
+        # word that's a prefix of two different zone names (e.g.
+        # "electronic" vs. "Electronic City"/"Electronic Hub") can score
+        # similarly against both. difflib would happily rank one a hair
+        # above the other and return it as if it were unambiguous. Only
+        # commit to a match when every close hit resolves to the SAME
+        # zone; otherwise this is genuinely ambiguous, not a confident
+        # fuzzy match, so it's skipped rather than guessed.
+        close = difflib.get_close_matches(word, candidates.keys(), n=3, cutoff=0.78)
+        if close:
+            matched_zone_names = {candidates[c]["name"] for c in close}
+            if len(matched_zone_names) == 1:
+                return candidates[close[0]]
+
     return None
 
 
@@ -227,19 +274,19 @@ def _rule_based_answer(question, zones):
 
     # --- 2. live-data lookups (only when the question is clearly about a
     # specific place, not just incidentally containing a hazard word) -----
+    # Word-boundary matching (not plain substring) so these can't fire on
+    # a hazard/keyword hiding inside an unrelated longer word.
     evacuation_hit = bool(re.search(r"\b(evacuat|escape route|safe way out|which way|route)\b", q))
-    hospital_hit = any(k in q for k in ("hospital", "medical", "doctor", "clinic", "ambulance"))
-    risk_hit = any(k in q for k in ("risk", "danger", "how bad", "how safe"))
-    contact_hit = any(k in q for k in ("emergency number", "helpline", "contact number", "phone number")) or \
-        (("emergency" in q or "contact" in q) and "kit" not in q)
+    hospital_hit = _has_any(q, ("hospital", "medical", "doctor", "clinic", "ambulance"))
+    risk_hit = _has_any(q, ("risk", "danger", "how bad", "how safe"))
+    contact_hit = _has_any(q, ("emergency number", "helpline", "contact number", "phone number")) or \
+        (_has_any(q, ("emergency", "contact")) and "kit" not in q)
 
     # A bare "flood"/"cyclone"/"landslide" mention is treated as a possible
     # risk query only when paired with an actual zone — otherwise it's very
     # likely a general safety question ("how do I purify water during a
     # flood") that should reach the FAQ layer below, not get swallowed here.
-    hazard_word_with_zone = zone is not None and any(
-        k in q for k in ("flood", "cyclone", "landslide")
-    )
+    hazard_word_with_zone = zone is not None and _has_any(q, ("flood", "cyclone", "landslide"))
 
     weather, traffic, hospitals, rescue_summary = _build_context()
 

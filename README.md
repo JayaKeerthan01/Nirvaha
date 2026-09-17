@@ -136,6 +136,7 @@ teams/users/zones are created automatically the first time you run `app.py`.
 - **Rescue Ops (`/rescue`)** — team status, zone priority ranking, the auto-generated deployment plan with a **Deploy** action, and an **Active deployments** table with a **Recall** action.
 - **Alerts (`/alerts`)** — the auto-generated High-risk alert log, plus a full **Disaster event log** below it showing every Weather Agent assessment (the `disasters` table).
 - **Manage Zones (`/admin/zones`, admin only)** — add or remove monitored zones at runtime. Every agent reads zones from the database, so a new zone shows up on the very next 15-second refresh — no code change or restart required.
+- **Users (`/admin/users`, admin only)** — how many community accounts exist, how many are verified, and how many are active right now (a request in the last 5 minutes).
 - **Citizen portal (`/citizen`, any logged-in account)** — a separate, simpler public UI: plain-language risk cards, an evacuation-route finder, a hospital directory with tap-to-call, and a chatbot. Anyone can create an account at `/signup`. See "Citizen portal" below.
 
 All pages poll their JSON API every 15 seconds (`/api/dashboard`, `/api/weather`, `/api/traffic`, `/api/hospitals`, `/api/rescue`, `/api/alerts`, `/api/incidents`) so the whole dashboard feels live without a page refresh. Change `POLL_INTERVAL_MS` in `config.py` to adjust that.
@@ -458,6 +459,63 @@ the pure-function unit tests, which run with zero extra dependencies via
   dashboard, the ops Hospitals table, the citizen Hospitals page, and the
   chatbot — confirmed with real screenshots of all four, not just the
   underlying function call.
+
+**Three distinct role themes**
+- Admin, operator, and citizen now look visually different at a glance —
+  admin is violet ("command"), operator is orange ("field ops"), citizen
+  is sky blue. Driven by one CSS variable (`--signal-info`) overridden per
+  `body.role-*` class, so every button/badge/active-nav element that
+  already referenced it re-themes automatically — no per-component
+  changes needed. The semantic risk colors (critical red / warning amber /
+  nominal teal) are deliberately untouched in all three; Low/Medium/High
+  has to mean the same thing no matter who's looking at it.
+
+**Email verification for citizen signup**
+- `/signup` now creates an unverified account, generates a 6-digit code,
+  and redirects to `/verify-email` — login is blocked until it's entered.
+  Matches the simulate-by-default pattern used everywhere else in this
+  project (`api/email_api.py`): real SMTP send if `SMTP_HOST` etc. are
+  configured, otherwise the code is shown directly on the verification
+  page with a clear "DEV MODE" banner so signup still works end-to-end
+  with zero external services.
+- Admin/operator accounts are seeded directly and never touch this flow —
+  there's no unverified-inbox risk to guard against for accounts that
+  were never self-registered in the first place.
+- Verified with real HTTP requests: wrong code rejected, correct code
+  verifies and logs in, and a second login afterward doesn't re-ask.
+
+**Admin visibility into community accounts**
+- New `/admin/users` page (and `/api/admin/users`): total signups,
+  verified count, and — the actual ask — how many are active *right now*,
+  computed from a `last_seen` timestamp touched on every authenticated
+  request (`app.py::touch_activity`), not just "has an account." Verified
+  that a real logged-in session shows up in the active count, and that
+  operators are blocked (302) from this page like `/admin/zones`.
+
+**Chatbot precision**
+- `find_zone()` now tolerates typos via `difflib` fuzzy matching
+  ("Koramangla" → "Koramangala") and matches hazard/intent keywords on
+  word boundaries instead of loose substrings.
+- Found and fixed a real ambiguity bug in the process: the original
+  first-word shortcut ("hsr" → "HSR Layout") would have silently guessed
+  between two zones if an admin ever added one that shared a first word
+  with an existing zone (e.g. "Electronic City" + "Electronic Hub") —
+  and the same bug reappeared inside the new fuzzy-match step on the
+  first attempt, since a short word like "electronic" scores similarly
+  fuzzy-matching against both. Fixed by requiring every close match to
+  resolve to the same zone before committing to it; otherwise it's
+  treated as genuinely ambiguous rather than guessed.
+
+**Map accuracy and smoothness**
+- The dashboard and Traffic & Routes maps previously used a hardcoded
+  center/zoom and cleared+recreated every marker on every 15s poll
+  (visible flicker even when nothing changed). Now: markers persist and
+  update in place (smooth CSS-transitioned color/size fade instead of a
+  snap), marker radius scales with actual risk/congestion severity
+  instead of every zone looking the same, High-risk zones get a subtle
+  pulse, and the view auto-fits to wherever the zones actually are
+  instead of assuming exactly 5 zones near HSR Layout — so a zone an
+  admin adds elsewhere is still visible without manual re-centering.
 
 ## 10. Roadmap — not done in this pass, and why
 

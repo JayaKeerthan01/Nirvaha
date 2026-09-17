@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}Community Accounts{% endblock %}
+{% block page_subtitle %}ADMIN ONLY · "ACTIVE" = A REQUEST IN THE LAST {{ active_window }} MINUTES{% endblock %}
+
+{% block content %}
+<div class="grid" style="grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:18px;">
+  <div class="card">
+    <div class="metric-label">ACTIVE RIGHT NOW</div>
+    <div class="metric-value" id="stat-active" style="color:var(--alert-nominal);">{{ stats.active_now }}</div>
+    <div class="zone-meta">Citizens with a request in the last {{ active_window }} min</div>
+  </div>
+  <div class="card">
+    <div class="metric-label">VERIFIED ACCOUNTS</div>
+    <div class="metric-value" id="stat-verified">{{ stats.verified_citizens }}</div>
+    <div class="zone-meta">Completed email verification</div>
+  </div>
+  <div class="card">
+    <div class="metric-label">TOTAL COMMUNITY ACCOUNTS</div>
+    <div class="metric-value" id="stat-total">{{ stats.total_citizens }}</div>
+    <div class="zone-meta">Self-registered via /signup</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section-title">Recent signups</div>
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Home zone</th><th>Verified</th><th>Last seen</th><th>Joined</th></tr></thead>
+    <tbody id="citizen-rows">
+      {% for c in citizens %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td class="mono">{{ c.email }}</td>
+        <td>{{ c.zone or "—" }}</td>
+        <td>
+          {% if c.email_verified %}<span class="badge badge-low">Verified</span>
+          {% else %}<span class="badge badge-medium">Pending</span>{% endif %}
+        </td>
+        <td class="mono">{{ c.last_seen or "never" }}</td>
+        <td class="mono">{{ c.created_at }}</td>
+      </tr>
+      {% endfor %}
+      {% if not citizens %}
+      <tr><td colspan="6" class="empty-state">No community accounts yet.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_users.js') }}"></script>
+{% endblock %}

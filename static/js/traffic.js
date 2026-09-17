@@ -1,10 +1,16 @@
 let tMap, tZoneLayer, tRouteLayer;
 let trafficMapReady = false;
+let trafficMarkers = {};      // zone name -> Leaflet circleMarker, kept across polls
+let tBoundsFittedForCount = 0;
 
 function initTrafficMap() {
   try {
     if (typeof L === "undefined") throw new Error("Leaflet failed to load");
-    tMap = L.map("traffic-map", { attributionControl: false }).setView([12.9121, 77.6446], 12);
+    tMap = L.map("traffic-map", {
+      attributionControl: false,
+      zoomAnimation: true,
+      fadeAnimation: true,
+    }).setView([12.9121, 77.6446], 12);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 18 }).addTo(tMap);
     tZoneLayer = L.layerGroup().addTo(tMap);
     tRouteLayer = L.layerGroup().addTo(tMap);
@@ -16,13 +22,17 @@ function initTrafficMap() {
   }
 }
 
+function congestionRadius(level) {
+  return { Low: 8, Moderate: 11, High: 15, Severe: 19 }[level] || 8;
+}
+
 async function renderTrafficTable() {
   const rows = document.getElementById("traffic-rows");
   try {
     const data = await getJSON("/api/traffic");
     rows.innerHTML = "";
-    if (trafficMapReady) tZoneLayer.clearLayers();
 
+    const seen = new Set();
     data.forEach((t) => {
       rows.appendChild(
         el(`
@@ -36,12 +46,40 @@ async function renderTrafficTable() {
       );
 
       if (trafficMapReady) {
+        seen.add(t.zone);
         const color = { Low: "#2DD4BF", Moderate: "#FFB238", High: "#f97316", Severe: "#FF5470" }[t.congestion_level];
-        L.circleMarker([t.lat, t.lon], { radius: 10, color, fillColor: color, fillOpacity: 0.4, weight: 2 })
-          .bindPopup(`<b>${t.zone}</b><br>${t.road_status}`)
-          .addTo(tZoneLayer);
+        const radius = congestionRadius(t.congestion_level);
+        const popup = `<b>${t.zone}</b><br>${t.road_status} (${Math.round(t.confidence * 100)}% confidence)`;
+        let marker = trafficMarkers[t.zone];
+        if (!marker) {
+          marker = L.circleMarker([t.lat, t.lon], { radius, color, fillColor: color, fillOpacity: 0.4, weight: 2 })
+            .bindPopup(popup)
+            .addTo(tZoneLayer);
+          trafficMarkers[t.zone] = marker;
+        } else {
+          // Update in place instead of clear+recreate — smooth color/size
+          // transition (see .leaflet-interactive in style.css) rather than
+          // every zone marker flashing on every 15s poll.
+          marker.setStyle({ radius, color, fillColor: color });
+          marker.setLatLng([t.lat, t.lon]);
+          marker.setPopupContent(popup);
+        }
       }
     });
+
+    if (trafficMapReady) {
+      Object.keys(trafficMarkers).forEach((zone) => {
+        if (!seen.has(zone)) {
+          tZoneLayer.removeLayer(trafficMarkers[zone]);
+          delete trafficMarkers[zone];
+        }
+      });
+      if (data.length > 0 && data.length !== tBoundsFittedForCount) {
+        const bounds = L.latLngBounds(data.map((t) => [t.lat, t.lon]));
+        tMap.flyToBounds(bounds, { padding: [40, 40], maxZoom: 14, duration: 0.8 });
+        tBoundsFittedForCount = data.length;
+      }
+    }
   } catch (e) {
     console.error(e);
   }

@@ -1,5 +1,8 @@
 let map, zoneLayer, hospitalLayer, teamLayer, routeLayer;
 let mapReady = false;
+let zoneMarkers = {};    // zone name -> Leaflet circleMarker, kept across polls
+let hospitalMarkers = {}; // hospital id -> Leaflet marker
+let boundsFittedForZoneCount = 0;
 
 function initMap() {
   // A failed/blocked map tile CDN used to take the whole dashboard down —
@@ -8,7 +11,13 @@ function initMap() {
   // map failure only affects the map panel.
   try {
     if (typeof L === "undefined") throw new Error("Leaflet failed to load");
-    map = L.map("map", { zoomControl: true, attributionControl: false }).setView([12.9121, 77.6446], 12);
+    map = L.map("map", {
+      zoomControl: true,
+      attributionControl: false,
+      zoomAnimation: true,
+      fadeAnimation: true,
+      markerZoomAnimation: true,
+    }).setView([12.9121, 77.6446], 12);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       maxZoom: 18,
     }).addTo(map);
@@ -26,6 +35,13 @@ function initMap() {
 
 function riskColor(level) {
   return { Low: "#2DD4BF", Medium: "#FFB238", High: "#FF5470" }[level] || "#5EA8FF";
+}
+
+// Marker size reflects actual severity instead of every zone looking the
+// same regardless of risk — a High-risk zone should visually read as more
+// urgent than a Low one at a glance, not just via a tooltip you have to open.
+function riskRadius(level) {
+  return { Low: 9, Medium: 13, High: 18 }[level] || 9;
 }
 
 function renderZonePriorities(priorities) {
@@ -149,33 +165,77 @@ function renderHospitalRecs(hospitals) {
 
 function renderMap(data) {
   if (!mapReady) return;
-  zoneLayer.clearLayers();
-  hospitalLayer.clearLayers();
-  teamLayer.clearLayers();
-  routeLayer.clearLayers();
 
+  // Persistent markers, updated in place, instead of clearing and
+  // recreating every 15s poll — that used to cause a visible flash/flicker
+  // on every refresh even when nothing changed. Combined with the CSS
+  // transition on .leaflet-interactive (style.css), a risk-level color or
+  // radius change now fades smoothly instead of snapping.
+  const seenZones = new Set();
   data.weather.forEach((w) => {
-    L.circleMarker([w.lat, w.lon], {
-      radius: 12,
-      color: riskColor(w.risk_level),
-      fillColor: riskColor(w.risk_level),
-      fillOpacity: 0.35,
-      weight: 2,
-    })
-      .bindPopup(`<b>${w.zone}</b><br>${w.prediction} risk: ${w.risk_level}<br>Rainfall ${w.weather.rainfall_mm}mm · Wind ${w.weather.wind_speed_kmh}km/h`)
-      .addTo(zoneLayer);
+    seenZones.add(w.zone);
+    const popup = `<b>${w.zone}</b><br>${w.prediction} · ${w.risk_level} risk (${Math.round(w.risk_score * 100)}%)<br>Rainfall ${w.weather.rainfall_mm}mm · Wind ${w.weather.wind_speed_kmh}km/h`;
+    let marker = zoneMarkers[w.zone];
+    if (!marker) {
+      marker = L.circleMarker([w.lat, w.lon], {
+        radius: riskRadius(w.risk_level),
+        color: riskColor(w.risk_level),
+        fillColor: riskColor(w.risk_level),
+        fillOpacity: 0.35,
+        weight: 2,
+      }).bindPopup(popup).addTo(zoneLayer);
+      zoneMarkers[w.zone] = marker;
+    } else {
+      marker.setStyle({ radius: riskRadius(w.risk_level), color: riskColor(w.risk_level), fillColor: riskColor(w.risk_level) });
+      marker.setLatLng([w.lat, w.lon]); // zones can move if an admin edits lat/lon
+      marker.setPopupContent(popup);
+    }
+    const el = marker.getElement && marker.getElement();
+    if (el) el.classList.toggle("risk-pulse-high", w.risk_level === "High");
+  });
+  // A zone removed via /admin/zones should disappear from the map too.
+  Object.keys(zoneMarkers).forEach((name) => {
+    if (!seenZones.has(name)) {
+      zoneLayer.removeLayer(zoneMarkers[name]);
+      delete zoneMarkers[name];
+    }
   });
 
+  const seenHospitals = new Set();
   (data.recommended_hospitals || []).forEach((h) => {
-    L.marker([h.lat, h.lon], {
-      icon: L.divIcon({ className: "", html: "🏥", iconSize: [20, 20] }),
-    })
-      .bindPopup(`<b>${h.hospital_name}</b><br>${h.beds_available} beds available`)
-      .addTo(hospitalLayer);
+    seenHospitals.add(h.id);
+    const popup = `<b>${h.hospital_name}</b><br>${h.beds_available} beds available<br>${h.accessibility_status || "Operational"}`;
+    let marker = hospitalMarkers[h.id];
+    if (!marker) {
+      marker = L.marker([h.lat, h.lon], { icon: L.divIcon({ className: "", html: "🏥", iconSize: [20, 20] }) })
+        .bindPopup(popup)
+        .addTo(hospitalLayer);
+      hospitalMarkers[h.id] = marker;
+    } else {
+      marker.setPopupContent(popup);
+    }
+  });
+  Object.keys(hospitalMarkers).forEach((id) => {
+    if (!seenHospitals.has(Number(id))) {
+      hospitalLayer.removeLayer(hospitalMarkers[id]);
+      delete hospitalMarkers[id];
+    }
   });
 
+  routeLayer.clearLayers(); // the route itself is a one-off overlay, not a tracked entity
   if (data.recommended_route && data.recommended_route.path) {
     L.polyline(data.recommended_route.path, { color: "#5EA8FF", weight: 3, dashArray: "6 6" }).addTo(routeLayer);
+  }
+
+  // Fit the view to whatever zones actually exist, once per zone-count
+  // change, instead of a hardcoded center/zoom that assumes exactly the 5
+  // demo zones — an admin adding a 6th zone somewhere else should still
+  // be visible on the map without anyone manually re-centering it.
+  const zoneCount = data.weather.length;
+  if (zoneCount > 0 && zoneCount !== boundsFittedForZoneCount) {
+    const bounds = L.latLngBounds(data.weather.map((w) => [w.lat, w.lon]));
+    map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 14, duration: 0.8 });
+    boundsFittedForZoneCount = zoneCount;
   }
 }
 
