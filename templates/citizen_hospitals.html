@@ -3,11 +3,17 @@
 
 {% block content %}
 <div class="citizen-hero">
-  <h1>Hospitals &amp; emergency contacts</h1>
-  <p>Bed availability updates live. Tap a number to call.</p>
+  <h1>Hospitals near you</h1>
+  <p>Showing the closest reachable hospitals to your area — not the full citywide list. Bed availability updates live; tap a number to call.</p>
 </div>
 
 <div class="big-card">
+  <label style="display:block; font-size:13px; color:var(--fog-300); margin-bottom:8px;">Your area</label>
+  <select id="zone-select" class="select-lg" style="margin-bottom:16px;">
+    {% for z in zones %}
+      <option value="{{ z.name }}" {% if home_zone and z.name == home_zone %}selected{% endif %}>{{ z.name }}</option>
+    {% endfor %}
+  </select>
   <div id="hospital-list">
     <div class="empty-state">Loading…</div>
   </div>
@@ -15,5 +21,8 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+  const HOME_ZONE = {{ home_zone|tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/citizen_hospitals.js') }}"></script>
 {% endblock %}

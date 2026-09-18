@@ -469,7 +469,26 @@ def api_traffic():
 @app.route("/api/hospitals")
 @login_required
 def api_hospitals():
+    """Two modes in one endpoint:
+      - No ?zone= param: every hospital, annotated with accessibility
+        status but not ranked or filtered. This is what the ops Hospitals
+        page uses — admin/operator need to see the full picture, not a
+        pre-filtered subset, especially when deciding where to route
+        overflow from a compromised area.
+      - ?zone=<name>: the top nearby, ranked-by-suitability hospitals for
+        that specific zone (same accessibility-aware ranking used by the
+        dashboard and the citizen chatbot). This is what the citizen
+        Hospitals page uses — someone in a disaster doesn't need a list
+        of all 15 hospitals across the city, they need the closest ones
+        that are actually reachable.
+    """
     weather_by_zone = {w["zone"]: w for w in weather_agent.assess_all_zones()}
+    zone_name = request.args.get("zone")
+    if zone_name:
+        zones_by_name = {z["name"]: z for z in get_zones()}
+        zone_obj = zones_by_name.get(zone_name)
+        if zone_obj:
+            return jsonify(hospital_agent.recommend_for_zone(zone_obj, top_n=6, weather_by_zone=weather_by_zone))
     return jsonify(hospital_agent.get_all_hospitals_with_status(weather_by_zone))
 
 

@@ -517,6 +517,30 @@ the pure-function unit tests, which run with zero extra dependencies via
   instead of assuming exactly 5 zones near HSR Layout — so a zone an
   admin adds elsewhere is still visible without manual re-centering.
 
+**15 hospitals, and citizens see only the reachable nearby ones**
+- Seed data expanded from 5 hospitals (1 per zone) to 15 (3 per zone) —
+  a real disaster taking out every hospital in one zone now leaves
+  genuinely different real alternatives, not just "the same one hospital
+  that zone always had."
+- `/api/hospitals` now does two different jobs depending on the caller,
+  on purpose:
+  - No `?zone=` param → every hospital, unranked, unfiltered. This is
+    what the ops Hospitals page uses — admin/operator deciding where to
+    route overflow need the full picture, not a pre-filtered subset.
+  - `?zone=<name>` → the top 6 nearby hospitals for that zone, ranked by
+    the same accessibility-aware suitability score the dashboard and
+    chatbot already use. This is what the citizen Hospitals page uses —
+    someone in a disaster needs the closest *reachable* hospitals, not
+    all 15 across the city.
+- The citizen Hospitals page gained a zone picker (defaulting to their
+  signup home zone) so "nearby" has a reference point.
+- Verified with a forced scenario: HSR Layout at High flood risk, now
+  with 3 hospitals actually located there. All three correctly dropped
+  out of the citizen's top-6 nearby list entirely — replaced by 6 real,
+  operational hospitals from Koramangala, BTM Layout, Bellandur, and
+  Electronic City — while the admin/operator Hospitals table still shows
+  all 15, with the 3 HSR Layout ones clearly flagged "Unreachable."
+
 ## 10. Roadmap — not done in this pass, and why
 
 These were flagged as worth doing but need infrastructure/credentials this

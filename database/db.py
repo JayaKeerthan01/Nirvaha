@@ -209,11 +209,26 @@ def _seed_demo_data(conn):
     cur.execute("SELECT COUNT(*) AS c FROM hospitals")
     if cur.fetchone()["c"] == 0:
         hospitals = [
+    # HSR Layout
     ("Columbia Asia Hospital, Sarjapur Road", "HSR Layout", 12.9101, 77.6520, 180, 40, 28, 5, 8, "080-6165-6262"),
     ("Motherhood Hospital, HSR Layout", "HSR Layout", 12.9110, 77.6440, 90, 20, 15, 3, 4, "080-4718-1000"),
+    ("Sagar Hospitals, HSR Layout", "HSR Layout", 12.9050, 77.6510, 150, 35, 22, 4, 6, "080-4243-4243"),
+    # Koramangala
     ("St. John's Medical College Hospital", "Koramangala", 12.9280, 77.6230, 250, 55, 40, 6, 12, "080-2206-5000"),
+    ("Manipal Hospital, Koramangala", "Koramangala", 12.9345, 77.6200, 280, 60, 45, 7, 14, "080-2502-4444"),
+    ("Cloudnine Hospital, Koramangala", "Koramangala", 12.9380, 77.6270, 100, 25, 20, 3, 5, "080-3989-9999"),
+    # Bellandur
     ("Sakra World Hospital", "Bellandur", 12.9260, 77.6790, 200, 45, 32, 5, 10, "080-4969-4969"),
+    ("Vydehi Multispecialty, Bellandur", "Bellandur", 12.9330, 77.6820, 220, 50, 35, 6, 11, "080-2841-3333"),
+    ("Aster CMI Extension, Bellandur", "Bellandur", 12.9270, 77.6750, 130, 28, 24, 4, 7, "080-4342-0100"),
+    # BTM Layout
+    ("Fortis Hospital, BTM Layout", "BTM Layout", 12.9140, 77.6080, 260, 55, 40, 6, 13, "080-6621-4444"),
+    ("Sparsh Hospital, BTM Layout", "BTM Layout", 12.9190, 77.6130, 120, 30, 18, 3, 6, "080-4969-9797"),
+    ("People Tree Hospital, BTM Layout", "BTM Layout", 12.9110, 77.6060, 90, 20, 15, 2, 4, "080-2668-5555"),
+    # Electronic City
     ("Narayana Health City", "Electronic City", 12.8340, 77.6800, 300, 70, 45, 8, 15, "080-7122-2222"),
+    ("BGS Gleneagles Global, Electronic City", "Electronic City", 12.8420, 77.6650, 200, 45, 32, 5, 10, "080-2504-2222"),
+    ("Apollo Clinic, Electronic City", "Electronic City", 12.8480, 77.6550, 110, 24, 19, 3, 5, "080-4055-9999"),
 ]
         cur.executemany(
             """INSERT INTO hospitals
