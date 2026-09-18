@@ -280,7 +280,7 @@ def _rule_based_answer(question, zones):
     hospital_hit = _has_any(q, ("hospital", "medical", "doctor", "clinic", "ambulance"))
     risk_hit = _has_any(q, ("risk", "danger", "how bad", "how safe"))
     contact_hit = _has_any(q, ("emergency number", "helpline", "contact number", "phone number")) or \
-        (_has_any(q, ("emergency", "contact")) and "kit" not in q)
+        (_has_any(q, ("emergency", "contact")) and not _has_any(q, ("kit",)))
 
     # A bare "flood"/"cyclone"/"landslide" mention is treated as a possible
     # risk query only when paired with an actual zone — otherwise it's very
@@ -324,7 +324,7 @@ def _rule_based_answer(question, zones):
             if w:
                 base = (
                     f"{zone['name']} is currently at {w['risk_level'].upper()} risk "
-                    f"— most likely {w['prediction']} (confidence {round(w['risk_score'] * 100)}%). "
+                    f"— most likely {w['prediction']} (confidence {round(w['risk_score'] * 100, 1)}%). "
                     f"Current conditions: {w['weather']['rainfall_mm']}mm rainfall, "
                     f"{w['weather']['wind_speed_kmh']}km/h wind."
                 )

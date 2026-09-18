@@ -541,6 +541,32 @@ the pure-function unit tests, which run with zero extra dependencies via
   Electronic City — while the admin/operator Hospitals table still shows
   all 15, with the 3 HSR Layout ones clearly flagged "Unreachable."
 
+**Full per-role backgrounds, not just an accent color**
+- The earlier role-theme pass only swapped `--signal-info` (the accent).
+  Every role now gets its own full dark palette — background layers
+  (`--ink-950/900/850/800`), borders, and text colors shift together, not
+  just the highlight: admin is a cool violet-black ("Indigo Command"),
+  operator a warm amber-brown-black ("Ember Field Ops"), citizen a cool
+  teal-black ("Tide Community"). Every component already referenced these
+  variables instead of hardcoded hex, so redefining them under
+  `body.role-*` retheme the entire app with zero per-component changes.
+  Semantic risk colors (critical red / warning amber / nominal teal) are
+  still deliberately untouched in all three.
+
+**Chatbot precision, another pass**
+- Confidence figures now show one decimal place (e.g. "4.7%") instead of
+  rounding to a whole number — a small thing, but "confidence 5%" and
+  "confidence 4.7%" are different claims, and the underlying number
+  already has that precision.
+- The contact-question detector's "kit" exclusion (so "emergency kit"
+  doesn't get misread as an emergency-contacts request) now goes through
+  the same word-boundary helper as everything else, instead of being the
+  one remaining raw substring check.
+- Added transposed-letter and nonsense-input test cases to
+  `tests/test_citizen_chat.py` (37 tests total) to keep stretching what
+  "precise" actually means for the zone matcher, beyond the typo and
+  ambiguity cases already covered.
+
 ## 10. Roadmap — not done in this pass, and why
 
 These were flagged as worth doing but need infrastructure/credentials this

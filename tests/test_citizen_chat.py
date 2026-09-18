@@ -66,6 +66,14 @@ class TestFindZone(unittest.TestCase):
         z = find_zone("risk in Electronic Hub", ambiguous_zones)
         self.assertEqual(z["name"], "Electronic Hub")
 
+    def test_transposed_letters_still_resolve(self):
+        z = find_zone("nearest hospital to Elcetronic City", ZONES)
+        self.assertEqual(z["name"], "Electronic City")
+
+    def test_nonsense_word_does_not_spuriously_match(self):
+        z = find_zone("what about xyzzyplugh", ZONES)
+        self.assertIsNone(z)
+
 
 class TestMatchFaq(unittest.TestCase):
     """_match_faq is a pure function (no DB, no live agents) so these run

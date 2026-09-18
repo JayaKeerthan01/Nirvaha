@@ -751,27 +751,69 @@ tr:last-child td { border-bottom: none; }
 }
 
 /* ---------------------------------- role-based themes --------------------
-   Everything using var(--signal-info) — the active-nav highlight, primary
-   buttons, badge-info, focus rings, the brand-mark gradient — recolors per
-   role via this one variable, so admin/operator/citizen are visually
-   distinct at a glance without three separate stylesheets. The semantic
-   risk colors (--alert-critical/warning/nominal) are deliberately left
-   alone in all three — Low/Medium/High must mean the same thing regardless
-   of who's looking at it. */
+   Full palette per role, not just an accent color: background layers
+   (--ink-950/900/850/800), borders (--line-700/600), text (--fog-300/400,
+   --signal-100), and the accent (--signal-info) all shift together, so
+   admin/operator/citizen are distinct dark themes rather than one theme
+   with a different highlight color. Every component already references
+   these variables instead of hardcoded hex, so redefining them here is
+   enough to retheme the entire app with no per-component changes. The
+   semantic risk colors (--alert-critical/warning/nominal) are deliberately
+   left alone in all three — Low/Medium/High must mean the same thing
+   regardless of who's looking at it. */
 
 body.role-admin {
-  --signal-info: #8B7CFF;         /* violet — "control tower" authority */
+  /* Indigo Command — violet-black, authoritative */
+  --ink-950: #0E0D1C;
+  --ink-900: #17152B;
+  --ink-850: #1E1B37;
+  --ink-800: #252140;
+  --line-700: #383159;
+  --line-600: #453C6E;
+  --fog-300: #ADA6C9;
+  --fog-400: #8A81AC;
+  --signal-100: #F0EDFB;
+  --signal-info: #8B7CFF;
   --signal-info-dim: rgba(139, 124, 255, 0.15);
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(139, 124, 255, 0.08), transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(45, 212, 191, 0.04), transparent 40%);
 }
 
 body.role-operator {
-  --signal-info: #FF8A3D;         /* orange — active field dispatch */
+  /* Ember Field Ops — warm charcoal-black, active/urgent */
+  --ink-950: #1A1309;
+  --ink-900: #241B0E;
+  --ink-850: #2C2213;
+  --ink-800: #352A17;
+  --line-700: #4A3A1F;
+  --line-600: #5C4926;
+  --fog-300: #D4B896;
+  --fog-400: #B0906B;
+  --signal-100: #FBF1E0;
+  --signal-info: #FF8A3D;
   --signal-info-dim: rgba(255, 138, 61, 0.15);
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(255, 138, 61, 0.09), transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(255, 178, 56, 0.05), transparent 40%);
 }
 
 body.role-citizen {
-  --signal-info: #38BDF8;         /* sky blue — approachable, public-facing */
+  /* Tide Community — teal-black, approachable, public-facing */
+  --ink-950: #071A1D;
+  --ink-900: #0E2529;
+  --ink-850: #123033;
+  --ink-800: #163A3E;
+  --line-700: #1F4E52;
+  --line-600: #276165;
+  --fog-300: #9CC7CB;
+  --fog-400: #79A5A9;
+  --signal-100: #E8F7F8;
+  --signal-info: #38BDF8;
   --signal-info-dim: rgba(56, 189, 248, 0.15);
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.08), transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(45, 212, 191, 0.06), transparent 40%);
 }
 
 /* ---------------------------------- map polish ---------------------------
