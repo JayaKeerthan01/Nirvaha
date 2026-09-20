@@ -62,6 +62,12 @@ def init_db(seed=True):
             password_hash TEXT NOT NULL,
             role TEXT DEFAULT 'operator',
             phone TEXT,
+            zone TEXT,
+            email_verified INTEGER DEFAULT 0,
+            verification_code_hash TEXT,
+            verification_expires TEXT,
+            last_seen TEXT,
+            whatsapp_subscribed INTEGER DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -306,22 +312,6 @@ def init_db(seed=True):
             last_alert_sent TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         );
-
-        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-        CREATE INDEX IF NOT EXISTS idx_users_zone ON users(zone);
-        CREATE INDEX IF NOT EXISTS idx_alerts_zone ON alerts(zone);
-        CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at);
-        CREATE INDEX IF NOT EXISTS idx_disasters_loc_date ON disasters(location, date);
-        CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
-        CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
-        CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at);
-        CREATE INDEX IF NOT EXISTS idx_iot_sensors_zone ON iot_sensors(zone);
-        CREATE INDEX IF NOT EXISTS idx_social_distress_zone ON social_distress(zone);
-        CREATE INDEX IF NOT EXISTS idx_emergency_reports_status ON emergency_reports(status);
-        CREATE INDEX IF NOT EXISTS idx_relief_supplies_shelter ON relief_supplies(shelter_id);
-        CREATE INDEX IF NOT EXISTS idx_press_releases_published ON press_releases(published_at);
-        CREATE INDEX IF NOT EXISTS idx_whatsapp_subscribers_phone ON whatsapp_subscribers(phone);
-        CREATE INDEX IF NOT EXISTS idx_whatsapp_subscribers_zone ON whatsapp_subscribers(zone);
         """
     )
     conn.commit()
@@ -343,6 +333,30 @@ def init_db(seed=True):
             conn.commit()
         except sqlite3.OperationalError:
             pass  # column already exists
+
+    # Safely create all indexes after table definitions & column migrations
+    for idx_stmt in (
+        "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
+        "CREATE INDEX IF NOT EXISTS idx_users_zone ON users(zone)",
+        "CREATE INDEX IF NOT EXISTS idx_alerts_zone ON alerts(zone)",
+        "CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_disasters_loc_date ON disasters(location, date)",
+        "CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_iot_sensors_zone ON iot_sensors(zone)",
+        "CREATE INDEX IF NOT EXISTS idx_social_distress_zone ON social_distress(zone)",
+        "CREATE INDEX IF NOT EXISTS idx_emergency_reports_status ON emergency_reports(status)",
+        "CREATE INDEX IF NOT EXISTS idx_relief_supplies_shelter ON relief_supplies(shelter_id)",
+        "CREATE INDEX IF NOT EXISTS idx_press_releases_published ON press_releases(published_at)",
+        "CREATE INDEX IF NOT EXISTS idx_whatsapp_subscribers_phone ON whatsapp_subscribers(phone)",
+        "CREATE INDEX IF NOT EXISTS idx_whatsapp_subscribers_zone ON whatsapp_subscribers(zone)",
+    ):
+        try:
+            cur.execute(idx_stmt)
+            conn.commit()
+        except Exception:
+            pass
 
     # Deduplicate hospitals and enforce unique index
     try:
