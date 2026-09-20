@@ -195,6 +195,82 @@ def send_sms_alert(to_phone, message, zone=None):
         return {"ok": True, "channel": "sms", "recipient": to_phone, "mode": "failed", "warning": err_str}
 
 
+# ---------------------------------------------------------- WhatsApp channel ----
+
+def _format_whatsapp_phone(phone):
+    """Normalize phone to international format for WhatsApp (e.g. +919876543210)."""
+    p = str(phone).strip().replace(" ", "").replace("-", "")
+    if p.startswith("whatsapp:"):
+        p = p[9:]
+    if len(p) == 10 and not p.startswith("+"):
+        p = "+91" + p
+    elif not p.startswith("+") and len(p) > 10:
+        p = "+" + p
+    return p
+
+
+def send_whatsapp_alert(to_phone, message, zone=None):
+    """Sends an emergency alert via Twilio WhatsApp Sandbox (Free & works for Indian numbers)."""
+    clean_phone = _format_whatsapp_phone(to_phone)
+    if not _twilio_configured():
+        logger.info("[SIMULATED WHATSAPP] To: %s | Zone: %s | Msg: %s", clean_phone, zone, message)
+        log_notification(
+            channel="whatsapp",
+            recipient=clean_phone,
+            title="Emergency WhatsApp Alert",
+            message=message,
+            zone=zone,
+            status="simulated",
+        )
+        return {"ok": True, "channel": "whatsapp", "recipient": clean_phone, "mode": "simulated"}
+
+    try:
+        import requests
+        whatsapp_from = getattr(Config, "TWILIO_WHATSAPP_NUMBER", "+14155238886")
+        if not whatsapp_from.startswith("whatsapp:"):
+            whatsapp_from = f"whatsapp:{whatsapp_from}"
+        whatsapp_to = f"whatsapp:{clean_phone}"
+
+        body_text = f"🚨 *NIRVAHA EMERGENCY ALERT*\n\n{message}\n\n📍 *Zone:* {zone or 'All Districts'}\n📞 *Emergency Hotlines:* 112 (Police) | 108 (Ambulance)\n🌐 Live Portal: https://nirvaha.gov"
+
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{Config.TWILIO_ACCOUNT_SID}/Messages.json"
+        resp = requests.post(
+            url,
+            auth=(Config.TWILIO_ACCOUNT_SID, Config.TWILIO_AUTH_TOKEN),
+            data={
+                "From": whatsapp_from,
+                "To": whatsapp_to,
+                "Body": body_text,
+            },
+            timeout=10,
+        )
+        resp_data = resp.json() if resp.text else {}
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(resp_data.get("message", f"Twilio WhatsApp error {resp.status_code}"))
+
+        log_notification(
+            channel="whatsapp",
+            recipient=clean_phone,
+            title="Emergency WhatsApp Alert",
+            message=message,
+            zone=zone,
+            status="sent",
+        )
+        return {"ok": True, "channel": "whatsapp", "recipient": clean_phone, "mode": "sent"}
+    except Exception as exc:
+        err_str = str(exc)
+        logger.warning("WhatsApp send failed to %s (%s); logging simulated delivery", clean_phone, err_str)
+        log_notification(
+            channel="whatsapp",
+            recipient=clean_phone,
+            title="Emergency WhatsApp Alert",
+            message=f"{message} [Notice: {err_str}]",
+            zone=zone,
+            status="failed",
+        )
+        return {"ok": True, "channel": "whatsapp", "recipient": clean_phone, "mode": "simulated", "warning": err_str}
+
+
 # -------------------------------------------------- Multi-Channel Dispatcher ----
 
 class NotificationService:
@@ -215,7 +291,7 @@ class NotificationService:
             f"Seek higher ground or prepare for evacuation. Follow official routes."
         )
 
-        # 1. Publish real-time push event for active browser clients
+        # 1. Publish real-time push event for active browser clients & Mobile Simulator
         _publish_event("high_risk_alert", {
             "zone": zone_name,
             "hazard": hazard,
@@ -224,6 +300,8 @@ class NotificationService:
             "title": title,
             "message": message,
             "weather": weather,
+            "sms_text": f"[NIRVAHA ALERT] HIGH RISK in {zone_name}: {hazard} detected ({score}%). Evacuate to safe zone immediately.",
+            "whatsapp_text": f"🚨 High Risk Warning: {hazard} ({score}%) in {zone_name}. Rain: {rain}mm. Seek shelter now.",
         })
         log_notification(
             channel="push",
@@ -253,13 +331,14 @@ class NotificationService:
                 )
                 send_alert_email(email, title, email_body, zone=zone_name)
 
-        # 3. SMS alerts to registered citizens in that zone & district emergency lines
+        # 3. SMS & WhatsApp alerts to registered citizens in that zone
         sms_body = f"[NIRVAHA ALERT] HIGH RISK in {zone_name}: {hazard} detected ({score}%). Evacuate to safe zone immediately. Details: nirvaha.gov"
         sent_phones = set()
         for c in citizens:
             phone = c.get("phone")
             if phone and phone not in sent_phones:
                 send_sms_alert(phone, sms_body, zone=zone_name)
+                send_whatsapp_alert(phone, sms_body, zone=zone_name)
                 sent_phones.add(phone)
 
         district_phones = [
@@ -268,28 +347,31 @@ class NotificationService:
         for phone in district_phones:
             if phone not in sent_phones:
                 send_sms_alert(phone, sms_body, zone=zone_name)
+                send_whatsapp_alert(phone, sms_body, zone=zone_name)
                 sent_phones.add(phone)
 
         logger.info(
-            "Dispatched high-risk multi-channel alert for %s to %d citizens (sent to %d phones).",
+            "Dispatched high-risk multi-channel alert (Push, Email, SMS, WhatsApp) for %s to %d citizens (sent to %d phones).",
             zone_name,
             len(citizens),
             len(sent_phones),
         )
 
     def dispatch_broadcast(self, title, message, zone=None, channels=None, sender="Command Staff"):
-        """Staff-initiated emergency broadcast across selected channels."""
-        channels = channels or ["push", "email", "sms"]
+        """Staff-initiated emergency broadcast across selected channels (push, email, sms, whatsapp)."""
+        channels = channels or ["push", "email", "sms", "whatsapp"]
         zone_label = zone or "City-Wide (All Zones)"
-        results = {"push": 0, "email": 0, "sms": 0}
+        results = {"push": 0, "email": 0, "sms": 0, "whatsapp": 0}
 
-        # 1. Real-time Push
+        # 1. Real-time Push & Live Mobile Phone Simulator Event
         if "push" in channels:
             _publish_event("emergency_broadcast", {
                 "zone": zone,
                 "title": title,
                 "message": message,
                 "sender": sender,
+                "sms_text": f"[NIRVAHA BROADCAST] {title}: {message}",
+                "whatsapp_text": f"📢 *Official Broadcast from {sender}*:\n{title}\n\n{message}",
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
             log_notification(
@@ -317,7 +399,7 @@ class NotificationService:
                     send_alert_email(email, f"BROADCAST: {title}", body, zone=zone)
                     results["email"] += 1
 
-        # 3. SMS Delivery to registered citizen mobile numbers
+        # 3. SMS Delivery
         if "sms" in channels:
             sms_text = f"[NIRVAHA BROADCAST] {title}: {message}"
             recipients = get_users_by_zone(zone) if zone else get_all_contactable_users()
@@ -332,6 +414,22 @@ class NotificationService:
                 fallback_phone = f"+91-98800-{zone[:4].upper() if zone else 'CITY'}-EMRG"
                 send_sms_alert(fallback_phone, sms_text, zone=zone)
                 results["sms"] += 1
+
+        # 4. WhatsApp Delivery (Twilio Sandbox)
+        if "whatsapp" in channels:
+            wa_text = f"📢 *EMERGENCY BROADCAST: {title}*\n\n{message}"
+            recipients = get_users_by_zone(zone) if zone else get_all_contactable_users()
+            sent_wa_phones = set()
+            for r in recipients:
+                phone = r.get("phone")
+                if phone and phone not in sent_wa_phones:
+                    send_whatsapp_alert(phone, wa_text, zone=zone)
+                    sent_wa_phones.add(phone)
+                    results["whatsapp"] += 1
+            if not sent_wa_phones:
+                fallback_phone = f"+919880012345"
+                send_whatsapp_alert(fallback_phone, wa_text, zone=zone)
+                results["whatsapp"] += 1
 
         return {
             "ok": True,

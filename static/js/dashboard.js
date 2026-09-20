@@ -937,9 +937,10 @@ function initBroadcastModal() {
       const zone = document.getElementById("bc-zone").value || null;
 
       const channels = [];
-      if (document.getElementById("bc-ch-push").checked) channels.push("push");
-      if (document.getElementById("bc-ch-sms").checked) channels.push("sms");
-      if (document.getElementById("bc-ch-email").checked) channels.push("email");
+      if (document.getElementById("bc-ch-push")?.checked) channels.push("push");
+      if (document.getElementById("bc-ch-sms")?.checked) channels.push("sms");
+      if (document.getElementById("bc-ch-whatsapp")?.checked) channels.push("whatsapp");
+      if (document.getElementById("bc-ch-email")?.checked) channels.push("email");
 
       if (!title || !message) {
         alert("Please provide both a broadcast title and emergency instructions.");

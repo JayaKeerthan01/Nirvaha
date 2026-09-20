@@ -107,10 +107,11 @@ class Config:
     # 1. Fast2SMS (Recommended for Indian mobile numbers - free trial credits, no DLT fee)
     FAST2SMS_API_KEY = os.environ.get("FAST2SMS_API_KEY", "")
 
-    # 2. Twilio (International / Virtual number delivery)
+    # 2. Twilio (International SMS & WhatsApp Sandbox delivery)
     TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
     TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")
+    TWILIO_WHATSAPP_NUMBER = os.environ.get("TWILIO_WHATSAPP_NUMBER", "+14155238886")
 
     # Autonomous rescue & hospital auto-dispatch toggle default
     AUTO_DISPATCH_DEFAULT = os.environ.get("AUTO_DISPATCH_ENABLED", "0") == "1"

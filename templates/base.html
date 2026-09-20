@@ -116,6 +116,12 @@
             <span id="push-icon">🔔</span>
           </button>
 
+          <!-- On-Screen Citizen Phone Simulator Launcher -->
+          <button class="icon-toggle-btn" id="open-phone-sim-btn" title="Open Citizen Mobile Phone Simulator (SMS & WhatsApp Delivery)" aria-label="Open Citizen Phone Simulator" style="color:#00d2d3; border-color:rgba(0,210,211,0.4); position:relative;">
+            <span>📱</span>
+            <span id="topbar-phone-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ff4757; color:#fff; font-size:9px; font-weight:800; border-radius:50%; width:15px; height:15px; line-height:15px; text-align:center;">1</span>
+          </button>
+
           <span class="clock" id="live-clock">--:--:--</span>
           <span class="risk-pill risk-low" id="global-risk-pill"><span class="dot"></span> Risk: —</span>
         </div>
@@ -147,9 +153,10 @@
             </div>
             <div class="field" style="margin-bottom:12px;">
               <label style="display:block; font-size:12px; color:var(--fog-400); margin-bottom:6px;">Distribution Channels</label>
-              <div style="display:flex; gap:16px; font-size:13px;">
+              <div style="display:flex; gap:16px; font-size:13px; flex-wrap:wrap;">
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="bc-ch-push" checked> In-App &amp; Push</label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="bc-ch-sms" checked> SMS Alert</label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="bc-ch-whatsapp" checked> 🟢 WhatsApp Alert</label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="bc-ch-email" checked> Email Alert</label>
               </div>
             </div>
@@ -195,6 +202,7 @@
     }
   </script>
   <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/mobile_simulator.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -140,9 +140,10 @@ async function initPageBroadcast() {
       const message = (document.getElementById("p-bc-msg").value || "").trim();
 
       const channels = [];
-      if (document.getElementById("p-bc-push").checked) channels.push("push");
-      if (document.getElementById("p-bc-sms").checked) channels.push("sms");
-      if (document.getElementById("p-bc-email").checked) channels.push("email");
+      if (document.getElementById("p-bc-push")?.checked) channels.push("push");
+      if (document.getElementById("p-bc-sms")?.checked) channels.push("sms");
+      if (document.getElementById("p-bc-whatsapp")?.checked) channels.push("whatsapp");
+      if (document.getElementById("p-bc-email")?.checked) channels.push("email");
 
       if (!title || !message) return;
 

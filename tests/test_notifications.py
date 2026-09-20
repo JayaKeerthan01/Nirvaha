@@ -4,6 +4,7 @@ from api.notification_service import (
     notification_service,
     send_alert_email,
     send_sms_alert,
+    send_whatsapp_alert,
     subscribe,
     unsubscribe,
 )
@@ -42,16 +43,31 @@ class TestNotificationService(unittest.TestCase):
         found = any(n["recipient"] == "+91-98800-TEST-01" for n in history)
         self.assertTrue(found)
 
+    def test_send_whatsapp_alert_simulation(self):
+        test_phone = "+919880099887"
+        res = send_whatsapp_alert(
+            to_phone=test_phone,
+            message="Test WhatsApp alert from Nirvaha Command",
+            zone="Indiranagar",
+        )
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["channel"], "whatsapp")
+
+        history = get_recent_notifications(50)
+        found = any(n["recipient"] == test_phone and n["channel"] == "whatsapp" for n in history)
+        self.assertTrue(found)
+
     def test_dispatch_broadcast(self):
         res = notification_service.dispatch_broadcast(
             title="Citywide Flood Warning",
             message="Please stay indoors until storm passes.",
             zone="Bellandur",
-            channels=["push", "email", "sms"],
+            channels=["push", "email", "sms", "whatsapp"],
             sender="Duty Officer",
         )
         self.assertTrue(res["ok"])
         self.assertIn("push", res["channels"])
+        self.assertIn("whatsapp", res["channels"])
         self.assertGreaterEqual(res["dispatched"]["push"], 1)
 
     def test_sse_subscribe_and_publish(self):
@@ -60,11 +76,13 @@ class TestNotificationService(unittest.TestCase):
             notification_service.dispatch_broadcast(
                 title="SSE Test Alert",
                 message="Testing SSE delivery",
-                channels=["push"],
+                channels=["push", "sms", "whatsapp"],
             )
             event = q.get(timeout=2)
             self.assertEqual(event["type"], "emergency_broadcast")
             self.assertEqual(event["data"]["title"], "SSE Test Alert")
+            self.assertIn("sms_text", event["data"])
+            self.assertIn("whatsapp_text", event["data"])
         finally:
             unsubscribe(q)
 
