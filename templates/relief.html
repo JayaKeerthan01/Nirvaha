@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}NGOs &amp; Disaster Relief Operations Hub{% endblock %}
+
+{% block content %}
+<div class="relief-page-wrap" style="max-width: 1400px; margin: 0 auto; padding: 10px 0 40px;">
+  <!-- Header Header -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 999px; margin-bottom: 8px;">
+        <span>🤝 External Stakeholder Layer 5</span> • <span>NGOs &amp; Relief Organizations</span>
+      </div>
+      <h1 style="font-size: 26px; font-weight: 800; color: #f8fafc; margin: 0 0 6px;">Relief Operations &amp; Shelter Logistics Hub</h1>
+      <p style="font-size: 13px; color: #94a3b8; margin: 0;">Real-time management of refugee relief camps, emergency rations, drinking water logistics, and NGO volunteer tasking.</p>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <select id="relief-zone-filter" onchange="loadReliefData()" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; color: #f8fafc; font-size: 13px; padding: 9px 14px; outline: none;">
+        <option value="">All Monitored Districts</option>
+        {% for z in zones %}
+        <option value="{{ z.name }}">{{ z.name }}</option>
+        {% endfor %}
+      </select>
+      <button onclick="openAidRequestModal()" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 9px 16px; font-weight: 600; border-radius: 8px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+        <span>📦</span> Request Relief Dispatch
+      </button>
+      <button onclick="loadReliefData()" class="btn btn-secondary" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; padding: 9px 14px; border-radius: 8px; font-size: 13px;">
+        🔄 Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Ribbon -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 16px;">
+      <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">Relief Shelters Open</div>
+      <div id="kpi-shelters" style="font-size: 26px; font-weight: 800; color: #38bdf8;">--</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Designated safe high-ground zones</div>
+    </div>
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 16px;">
+      <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">Citizens Sheltered</div>
+      <div id="kpi-evacuees" style="font-size: 26px; font-weight: 800; color: #10b981;">--</div>
+      <div id="kpi-occupancy-rate" style="font-size: 11px; color: #64748b; margin-top: 4px;">--% total capacity utilized</div>
+    </div>
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 16px;">
+      <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">Available Bed Capacity</div>
+      <div id="kpi-available-beds" style="font-size: 26px; font-weight: 800; color: #facc15;">--</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Remaining space for incoming citizens</div>
+    </div>
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 16px;">
+      <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">NGO Relief Personnel</div>
+      <div id="kpi-volunteers" style="font-size: 26px; font-weight: 800; color: #c084fc;">--</div>
+      <div id="kpi-ngos-count" style="font-size: 11px; color: #64748b; margin-top: 4px;">-- partner organizations active</div>
+    </div>
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 16px;">
+      <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">Critical Supply Needs</div>
+      <div id="kpi-shortages" style="font-size: 26px; font-weight: 800; color: #ef4444;">0</div>
+      <div style="font-size: 11px; color: #ef4444; margin-top: 4px;">Items below threshold</div>
+    </div>
+  </div>
+
+  <!-- Main 2-Column Content Layout -->
+  <div style="display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start;">
+    <!-- Left Column: Shelters & Supplies Directory -->
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h2 style="font-size: 17px; font-weight: 700; color: #f1f5f9; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>🏕️</span> Operational Relief Shelters &amp; Real-Time Inventory
+        </h2>
+        <span id="shelters-count-badge" style="font-size: 12px; color: #94a3b8; background: rgba(30, 41, 59, 0.8); padding: 3px 8px; border-radius: 6px;">Loading...</span>
+      </div>
+
+      <div id="shelters-list" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Dynamically rendered via JS -->
+      </div>
+    </div>
+
+    <!-- Right Column: NGO Partners & Emergency Aid Dispatch -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <!-- NGO Partner Directory -->
+      <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <span>🤝</span> Partner Relief NGOs
+          </h3>
+          <span style="font-size: 11px; color: #10b981; font-weight: 600;">Mobilized</span>
+        </div>
+        <div id="volunteers-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Quick Supply Checklist -->
+      <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 18px;">
+        <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc; margin: 0 0 12px; display: flex; align-items: center; gap: 8px;">
+          <span>📋</span> Standard Relief Kit Specs
+        </h3>
+        <ul style="font-size: 12px; color: #94a3b8; line-height: 1.6; padding-left: 18px; margin: 0;">
+          <li><strong style="color:#f1f5f9;">Potable Water:</strong> 5L canister per family/day. Target: 200 units min.</li>
+          <li><strong style="color:#f1f5f9;">MRE Meal Packs:</strong> High-protein 2400 kcal rations.</li>
+          <li><strong style="color:#f1f5f9;">Emergency Trauma Kits:</strong> Antiseptic, sutures, burn dressings.</li>
+          <li><strong style="color:#f1f5f9;">Water Purification:</strong> Chlorine tabs (1 tab treats 20L).</li>
+          <li><strong style="color:#f1f5f9;">Pediatric Care:</strong> Infant formula, ORS sachets, diapers.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Request Emergency Aid Dispatch -->
+<div id="aid-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#0f172a; border:1px solid rgba(148,163,184,0.25); border-radius:14px; width:100%; max-width:500px; padding:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.8);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+      <h3 style="font-size:18px; font-weight:700; color:#f8fafc; margin:0; display:flex; align-items:center; gap:8px;">
+        <span>📦</span> Request Emergency Aid Dispatch
+      </h3>
+      <button onclick="closeAidModal()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
+    </div>
+
+    <form id="aid-dispatch-form" onsubmit="submitAidRequest(event)">
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; color:#94a3b8; margin-bottom:5px;">Target Relief Shelter</label>
+        <select id="aid-shelter-select" required style="width:100%; background:#1e293b; border:1px solid rgba(148,163,184,0.3); border-radius:6px; color:#f8fafc; padding:8px 10px; font-size:13px;">
+          <!-- Dynamically filled -->
+        </select>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; color:#94a3b8; margin-bottom:5px;">Required Supply Category</label>
+        <select id="aid-item-select" required style="width:100%; background:#1e293b; border:1px solid rgba(148,163,184,0.3); border-radius:6px; color:#f8fafc; padding:8px 10px; font-size:13px;">
+          <option value="Potable Drinking Water (5L Cans)">Potable Drinking Water (5L Cans)</option>
+          <option value="Ready-to-Eat Food Rations">Ready-to-Eat Food Rations</option>
+          <option value="Emergency Trauma &amp; First Aid Kits">Emergency Trauma &amp; First Aid Kits</option>
+          <option value="Thermal Blankets &amp; Bed Rolls">Thermal Blankets &amp; Bed Rolls</option>
+          <option value="Water Purification Tablets">Water Purification Tablets</option>
+          <option value="Infant Formula &amp; Baby Care Kits">Infant Formula &amp; Baby Care Kits</option>
+          <option value="Emergency Power Generators &amp; Fuel">Emergency Power Generators &amp; Fuel</option>
+        </select>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:12px; color:#94a3b8; margin-bottom:5px;">Logistics Urgency &amp; Field Notes</label>
+        <textarea id="aid-notes" rows="3" placeholder="e.g. Critical shortage due to influx of 80 new flood evacuees from Low-lying sector..." required style="width:100%; background:#1e293b; border:1px solid rgba(148,163,184,0.3); border-radius:6px; color:#f8fafc; padding:8px 10px; font-size:13px; font-family:inherit;"></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" onclick="closeAidModal()" class="btn btn-secondary" style="background:#1e293b; border:1px solid rgba(148,163,184,0.3); color:#f8fafc; padding:8px 16px; border-radius:6px; font-size:13px;">Cancel</button>
+        <button type="submit" id="aid-submit-btn" class="btn btn-primary" style="background:#10b981; border:none; color:#064e3b; font-weight:700; padding:8px 18px; border-radius:6px; font-size:13px;">Dispatch Aid Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentShelters = [];
+
+async function loadReliefData() {
+  const zone = document.getElementById("relief-zone-filter")?.value || "";
+  try {
+    const res = await fetch(`/api/relief/overview?zone=${encodeURIComponent(zone)}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Failed to load data");
+
+    currentShelters = data.shelters || [];
+
+    // Render KPIs
+    document.getElementById("kpi-shelters").textContent = data.kpi.total_shelters;
+    document.getElementById("kpi-evacuees").textContent = data.kpi.total_occupancy.toLocaleString();
+    document.getElementById("kpi-occupancy-rate").textContent = `${data.kpi.occupancy_rate}% total capacity utilized (${data.kpi.total_capacity.toLocaleString()} max)`;
+    document.getElementById("kpi-available-beds").textContent = (data.kpi.total_capacity - data.kpi.total_occupancy).toLocaleString();
+    document.getElementById("kpi-volunteers").textContent = data.kpi.total_volunteers;
+    document.getElementById("kpi-ngos-count").textContent = `${data.kpi.partner_ngos} partner organizations active`;
+    document.getElementById("kpi-shortages").textContent = data.kpi.critical_shortages;
+    document.getElementById("shelters-count-badge").textContent = `${data.shelters.length} active facilities`;
+
+    renderShelters(data.shelters);
+    renderVolunteers(data.volunteers);
+    populateAidModalShelters(data.shelters);
+  } catch (err) {
+    console.error("Relief data load failed:", err);
+  }
+}
+
+function renderShelters(shelters) {
+  const container = document.getElementById("shelters-list");
+  if (!container) return;
+
+  if (!shelters.length) {
+    container.innerHTML = `<div style="text-align:center; padding:40px; background:rgba(15,23,42,0.6); border-radius:12px; color:#94a3b8;">No relief shelters found for selected filter.</div>`;
+    return;
+  }
+
+  container.innerHTML = shelters.map(s => {
+    const occPct = s.occupancy_pct || 0;
+    const barColor = occPct > 85 ? "#ef4444" : occPct > 60 ? "#f59e0b" : "#10b981";
+
+    const suppliesHtml = (s.supplies || []).map(sup => {
+      const isCrit = sup.status === "Critical";
+      const isLow = sup.status === "Low";
+      const statusBg = isCrit ? "rgba(239,68,68,0.2)" : isLow ? "rgba(245,158,11,0.2)" : "rgba(16,185,129,0.15)";
+      const statusColor = isCrit ? "#fca5a5" : isLow ? "#fcd34d" : "#6ee7b7";
+      const badgeBorder = isCrit ? "rgba(239,68,68,0.4)" : isLow ? "rgba(245,158,11,0.4)" : "rgba(16,185,129,0.3)";
+
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(30,41,59,0.5); border:1px solid rgba(148,163,184,0.1); border-radius:6px; padding:8px 12px;">
+          <div style="font-size:13px; color:#f1f5f9; font-weight:500;">
+            ${sup.item_name}
+            <div style="font-size:11px; color:#64748b;">Min required: ${sup.minimum_required} ${sup.unit}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:13px; font-weight:700; color:#f8fafc;">${sup.quantity} <span style="font-size:11px; font-weight:400; color:#94a3b8;">${sup.unit}</span></span>
+            <span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:3px 7px; border-radius:4px; background:${statusBg}; color:${statusColor}; border:1px solid ${badgeBorder};">${sup.status}</span>
+            <button onclick="quickRestock(${sup.id}, ${sup.quantity + 50})" title="Add +50 units" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.25); color:#f8fafc; border-radius:4px; padding:3px 7px; font-size:11px; cursor:pointer; font-weight:600;">+50</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div style="background:rgba(15,23,42,0.75); border:1px solid rgba(148,163,184,0.15); border-radius:12px; padding:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <h3 style="font-size:16px; font-weight:700; color:#f8fafc; margin:0;">${s.name}</h3>
+              <span style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${s.zone}</span>
+            </div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">
+              📞 Emergency Contact: <a href="tel:${s.contact}" style="color:#38bdf8; text-decoration:none;">${s.contact}</a> • GPS: ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="text-align:right;">
+              <span style="font-size:14px; font-weight:800; color:#f8fafc;">${s.current_occupancy}</span>
+              <span style="font-size:12px; color:#64748b;"> / ${s.capacity}</span>
+              <div style="font-size:10px; color:#94a3b8; font-weight:600;">${occPct}% Occupied</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <button onclick="adjustOccupancy(${s.id}, ${s.current_occupancy + 10})" title="Admit +10 evacuees" style="background:#10b981; border:none; color:#064e3b; font-weight:700; border-radius:4px; padding:2px 7px; font-size:10px; cursor:pointer;">+10</button>
+              <button onclick="adjustOccupancy(${s.id}, ${Math.max(0, s.current_occupancy - 10)})" title="Release -10 evacuees" style="background:rgba(148,163,184,0.2); border:none; color:#f8fafc; border-radius:4px; padding:2px 7px; font-size:10px; cursor:pointer;">-10</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Occupancy Progress Bar -->
+        <div style="height:6px; width:100%; background:rgba(30,41,59,0.8); border-radius:999px; overflow:hidden; margin-bottom:16px;">
+          <div style="height:100%; width:${Math.min(occPct, 100)}%; background:${barColor}; border-radius:999px; transition:width 0.4s ease;"></div>
+        </div>
+
+        <!-- Supplies List -->
+        <div style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">
+          Relief Rations &amp; Medical Supplies (${(s.supplies || []).length} items)
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:8px;">
+          ${suppliesHtml || '<div style="font-size:12px; color:#64748b;">No supplies logged for this shelter.</div>'}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderVolunteers(volunteers) {
+  const container = document.getElementById("volunteers-list");
+  if (!container) return;
+
+  if (!volunteers.length) {
+    container.innerHTML = `<div style="font-size:12px; color:#64748b;">No partner NGOs listed.</div>`;
+    return;
+  }
+
+  container.innerHTML = volunteers.map(v => `
+    <div style="background:rgba(30,41,59,0.5); border:1px solid rgba(148,163,184,0.1); border-radius:8px; padding:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div style="font-size:13px; font-weight:700; color:#f1f5f9;">${v.ngo_name}</div>
+        <span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(192,132,252,0.15); color:#c084fc; border:1px solid rgba(192,132,252,0.3);">${v.assigned_zone}</span>
+      </div>
+      <div style="font-size:11px; color:#38bdf8; font-weight:500; margin-top:2px;">${v.specialization}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px; color:#94a3b8;">
+        <div>👤 Lead: ${v.contact_person} (<a href="tel:${v.phone}" style="color:#38bdf8; text-decoration:none;">${v.phone}</a>)</div>
+        <div style="font-weight:700; color:#10b981;">👥 ${v.active_volunteers} Deployed</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function populateAidModalShelters(shelters) {
+  const sel = document.getElementById("aid-shelter-select");
+  if (!sel) return;
+  sel.innerHTML = shelters.map(s => `<option value="${s.id}">${s.name} (${s.zone})</option>`).join("");
+}
+
+async function quickRestock(supplyId, newQty) {
+  try {
+    const res = await fetch(`/api/relief/supplies/${supplyId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity: newQty })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    loadReliefData();
+  } catch (err) {
+    alert("Update failed: " + err.message);
+  }
+}
+
+async function adjustOccupancy(shelterId, newOcc) {
+  try {
+    const res = await fetch(`/api/relief/shelters/${shelterId}/occupancy`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ occupancy: newOcc })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    loadReliefData();
+  } catch (err) {
+    alert("Occupancy update failed: " + err.message);
+  }
+}
+
+function openAidRequestModal() {
+  const modal = document.getElementById("aid-modal");
+  if (modal) modal.style.display = "flex";
+}
+
+function closeAidModal() {
+  const modal = document.getElementById("aid-modal");
+  if (modal) modal.style.display = "none";
+}
+
+async function submitAidRequest(e) {
+  e.preventDefault();
+  const shelterId = document.getElementById("aid-shelter-select").value;
+  const itemName = document.getElementById("aid-item-select").value;
+  const notes = document.getElementById("aid-notes").value;
+  const btn = document.getElementById("aid-submit-btn");
+
+  btn.disabled = true;
+  btn.textContent = "Dispatching Request…";
+
+  try {
+    const res = await fetch("/api/relief/request-aid", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shelter_id: shelterId, item_name: itemName, notes: notes })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    alert("✓ " + data.message);
+    closeAidModal();
+    document.getElementById("aid-notes").value = "";
+    loadReliefData();
+  } catch (err) {
+    alert("Aid request failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Dispatch Aid Request";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadReliefData();
+});
+</script>
+{% endblock %}

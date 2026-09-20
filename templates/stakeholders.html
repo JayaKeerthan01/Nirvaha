@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}External Stakeholders Coordination Matrix{% endblock %}
+
+{% block content %}
+<div style="max-width: 1350px; margin: 0 auto; padding: 10px 0 40px;">
+  <!-- Header -->
+  <div style="margin-bottom: 24px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 4px 10px; border-radius: 999px; margin-bottom: 8px;">
+      <span>🌐 System Architecture Layer 6</span> • <span>Multi-Stakeholder Integration</span>
+    </div>
+    <h1 style="font-size: 26px; font-weight: 800; color: #f8fafc; margin: 0 0 6px;">External Stakeholders Operations Matrix</h1>
+    <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+      Real-time coordination, two-way communication links, and data-driven command flows across all 6 stakeholder entities.
+    </p>
+  </div>
+
+  <!-- 6 Stakeholders Grid (Matches PowerPoint Slide Exactly) -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px;">
+    
+    <!-- 1. Disaster Management Authorities -->
+    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">🏛️</span>
+            <h3 style="font-size: 17px; font-weight: 800; color: #ffffff; margin: 0;">1. Disaster Management Authorities</h3>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(56, 189, 248, 0.3);">{{ summary.authorities.status }}</span>
+        </div>
+        <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
+          Central policy makers, district disaster commissioners, and operational commanders responsible for high-level resource mobilization, emergency ordinances, and audit governance.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Command Centers</div>
+            <div style="font-size: 18px; font-weight: 800; color: #38bdf8;">1 Central SEOC</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Governance Trail</div>
+            <div style="font-size: 18px; font-weight: 800; color: #10b981;">Immutable Logs</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="/dashboard" class="btn btn-primary" style="flex: 1; text-align: center; text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 6px;">Open Command View</a>
+        <a href="/admin/audit" class="btn btn-secondary" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(148,163,184,0.2); color: #f8fafc; text-decoration: none; font-size: 12px; padding: 8px 12px; border-radius: 6px;">Audit Trail</a>
+      </div>
+    </div>
+
+    <!-- 2. Emergency Services (Police, Fire, Rescue) -->
+    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">🚒</span>
+            <h3 style="font-size: 17px; font-weight: 800; color: #ffffff; margin: 0;">2. Emergency Services</h3>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #f87171; background: rgba(239, 68, 68, 0.15); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(239, 68, 68, 0.3);">{{ summary.emergency_services.status }}</span>
+        </div>
+        <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
+          Tactical ground teams: State Disaster Response Force (SDRF), Fire &amp; Emergency, and Traffic Police handling field rescue, inflatable boat evacuations, and road clearance.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Active Teams</div>
+            <div style="font-size: 18px; font-weight: 800; color: #f87171;">{{ summary.emergency_services.active_teams }} Units</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Personnel</div>
+            <div style="font-size: 18px; font-weight: 800; color: #fbbf24;">{{ summary.emergency_services.field_personnel }}</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Vehicles/Boats</div>
+            <div style="font-size: 18px; font-weight: 800; color: #38bdf8;">{{ summary.emergency_services.rescue_vehicles }}</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="/incidents" class="btn btn-primary" style="background: #ef4444; border: none; flex: 1; text-align: center; text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 6px;">Triage Incidents</a>
+        <a href="/dashboard" class="btn btn-secondary" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(148,163,184,0.2); color: #f8fafc; text-decoration: none; font-size: 12px; padding: 8px 12px; border-radius: 6px;">Live Map</a>
+      </div>
+    </div>
+
+    <!-- 3. Hospitals & Medical Facilities -->
+    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">🏥</span>
+            <h3 style="font-size: 17px; font-weight: 800; color: #ffffff; margin: 0;">3. Hospitals &amp; Medical Facilities</h3>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #facc15; background: rgba(250, 204, 21, 0.15); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(250, 204, 21, 0.3);">{{ summary.hospitals.status }}</span>
+        </div>
+        <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
+          15 connected district trauma hospitals dynamically reserving emergency beds, tracking ICU availability, and dispatching advanced life-support (ALS) ambulances.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Network</div>
+            <div style="font-size: 18px; font-weight: 800; color: #facc15;">{{ summary.hospitals.hospital_count }} Centers</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Avail. Beds</div>
+            <div style="font-size: 18px; font-weight: 800; color: #10b981;">{{ summary.hospitals.available_beds }}</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Ambulances</div>
+            <div style="font-size: 18px; font-weight: 800; color: #38bdf8;">{{ summary.hospitals.ambulances }}</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="/dashboard" class="btn btn-primary" style="background: #eab308; color: #713f12; border: none; flex: 1; text-align: center; text-decoration: none; font-size: 12px; font-weight: 700; padding: 8px 12px; border-radius: 6px;">Hospital Bed Reserves</a>
+      </div>
+    </div>
+
+    <!-- 4. Public / Citizens -->
+    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">📢</span>
+            <h3 style="font-size: 17px; font-weight: 800; color: #ffffff; margin: 0;">4. Public / Citizens</h3>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #60a5fa; background: rgba(59, 130, 246, 0.15); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(59, 130, 246, 0.3);">{{ summary.citizens.status }}</span>
+        </div>
+        <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
+          Direct citizen engagement pipeline providing instant hazard warnings, safe AI evacuation routing, offline-first SOS reporting, and conversational AI assistance.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Registered Citizens</div>
+            <div style="font-size: 18px; font-weight: 800; color: #60a5fa;">{{ summary.citizens.registered_citizens }} Verified</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Citizen Reports Filed</div>
+            <div style="font-size: 18px; font-weight: 800; color: #f472b6;">{{ summary.citizens.citizen_reports_filed }} Reports</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="/citizen/home" target="_blank" class="btn btn-primary" style="background: #3b82f6; border: none; flex: 1; text-align: center; text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 6px;">Citizen Portal</a>
+        <a href="/citizen/report" target="_blank" class="btn btn-secondary" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(148,163,184,0.2); color: #f8fafc; text-decoration: none; font-size: 12px; padding: 8px 12px; border-radius: 6px;">Report Hazard SOS</a>
+      </div>
+    </div>
+
+    <!-- 5. NGOs & Relief Organizations -->
+    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">🤝</span>
+            <h3 style="font-size: 17px; font-weight: 800; color: #ffffff; margin: 0;">5. NGOs &amp; Relief Organizations</h3>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(16, 185, 129, 0.3);">{{ summary.ngos.status }}</span>
+        </div>
+        <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
+          Partner humanitarian agencies (Red Cross, Goonj, Akshaya Patra) managing refugee shelters, mass kitchen rations, potable water distribution, and volunteer task force.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Partner NGOs</div>
+            <div style="font-size: 18px; font-weight: 800; color: #34d399;">{{ summary.ngos.partner_ngos }} Active</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Volunteers</div>
+            <div style="font-size: 18px; font-weight: 800; color: #c084fc;">{{ summary.ngos.active_volunteers }}</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Sheltered</div>
+            <div style="font-size: 18px; font-weight: 800; color: #38bdf8;">{{ summary.ngos.current_evacuees }}</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="/relief" class="btn btn-primary" style="background: #10b981; border: none; color: #064e3b; flex: 1; text-align: center; text-decoration: none; font-size: 12px; font-weight: 700; padding: 8px 12px; border-radius: 6px;">Open Relief &amp; NGO Hub</a>
+      </div>
+    </div>
+
+    <!-- 6. Media & News Agencies -->
+    <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(192, 132, 252, 0.3); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">📰</span>
+            <h3 style="font-size: 17px; font-weight: 800; color: #ffffff; margin: 0;">6. Media &amp; News Agencies</h3>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #c084fc; background: rgba(192, 132, 252, 0.15); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(192, 132, 252, 0.3);">{{ summary.media.status }}</span>
+        </div>
+        <p style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px;">
+          Public-facing press desk delivering verified situation reports (SitReps), accredited spokesperson advisories, machine-readable JSON feeds, and social media myth-busting.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Official Releases</div>
+            <div style="font-size: 18px; font-weight: 800; color: #c084fc;">{{ summary.media.published_releases }} Published</div>
+          </div>
+          <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;">
+            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Media Access</div>
+            <div style="font-size: 18px; font-weight: 800; color: #38bdf8;">Public Wire (/press)</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="/press" target="_blank" class="btn btn-primary" style="background: linear-gradient(135deg, #7c3aed, #9333ea); border: none; flex: 1; text-align: center; text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 6px;">View Media Desk Wire</a>
+        <a href="/api/press/feed" target="_blank" class="btn btn-secondary" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(148,163,184,0.2); color: #f8fafc; text-decoration: none; font-size: 12px; padding: 8px 12px; border-radius: 6px;">JSON Feed</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

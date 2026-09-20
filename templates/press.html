@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Official Media Desk &amp; Press Wire | Nirvaha Disaster Authority</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    :root {
+      --press-bg: #090d16;
+      --press-card: #0f172a;
+      --press-border: rgba(148, 163, 184, 0.15);
+      --press-accent: #38bdf8;
+      --press-verified: #10b981;
+    }
+    body {
+      background: var(--press-bg);
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+    .press-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+    .press-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0 24px;
+      border-bottom: 1px solid var(--press-border);
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .badge-gov {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--press-accent);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .fact-card {
+      background: var(--press-card);
+      border: 1px solid var(--press-border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .fact-number {
+      font-size: 28px;
+      font-weight: 900;
+      margin: 4px 0;
+    }
+    .release-card {
+      background: var(--press-card);
+      border: 1px solid var(--press-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .release-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    .verified-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--press-verified);
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .rumor-box {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    @media print {
+      body { background: #fff; color: #000; }
+      .no-print { display: none !important; }
+      .release-card { border: 1px solid #ccc; background: #fff; color: #000; page-break-inside: avoid; }
+      .fact-card { border: 1px solid #ccc; background: #fff; color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <div class="press-container">
+    <!-- Topbar -->
+    <div class="press-topbar">
+      <div>
+        <div class="badge-gov">
+          <span>🏛️ Government of Karnataka • SDMA</span> • <span>External Stakeholder Layer 6</span>
+        </div>
+        <h1 style="font-size: 28px; font-weight: 900; color: #ffffff; margin: 8px 0 4px; letter-spacing: -0.02em;">
+          Nirvaha Disaster Response • Official Media &amp; Press Wire
+        </h1>
+        <p style="font-size: 14px; color: #94a3b8; margin: 0;">
+          Verified emergency situation reports, casualty counts, official guidance, and myth-busting desk for accredited news agencies &amp; journalists.
+        </p>
+      </div>
+
+      <div class="no-print" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button onclick="window.print()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid var(--press-border); color: #f8fafc; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          🖨️ Print / Save SitRep PDF
+        </button>
+        <a href="/api/press/feed" target="_blank" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+          <span>📡</span> Public JSON Feed
+        </a>
+        {% if session.get('role') in ['admin', 'operator'] %}
+        <button onclick="openPublishModal()" style="background: linear-gradient(135deg, #0284c7, #2563eb); border: none; color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">
+          📢 Issue New Press Bulletin
+        </button>
+        <a href="/dashboard" style="background: rgba(148, 163, 184, 0.1); border: 1px solid var(--press-border); color: #94a3b8; text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 13px;">
+          ← Command Dashboard
+        </a>
+        {% else %}
+        <a href="/login" style="background: rgba(148, 163, 184, 0.1); border: 1px solid var(--press-border); color: #94a3b8; text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 13px;">
+          Staff Sign In
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Verified Facts Ribbon (To prevent fake news on TV & Social Media) -->
+    <div style="margin-bottom: 30px;">
+      <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--press-verified); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span>✓</span> Verified Ground Statistics (Updated Live)
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
+        <div class="fact-card">
+          <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Confirmed Fatalities</div>
+          <div class="fact-number" style="color: #10b981;">0</div>
+          <div style="font-size: 11px; color: #64748b;">Zero disaster fatalities confirmed</div>
+        </div>
+        <div class="fact-card">
+          <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Citizens Safely Sheltered</div>
+          <div class="fact-number" style="color: #38bdf8;">{{ summary.ngos.current_evacuees }}</div>
+          <div style="font-size: 11px; color: #64748b;">In {{ summary.ngos.relief_shelters }} active high-ground camps</div>
+        </div>
+        <div class="fact-card">
+          <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Trauma Beds Reserved</div>
+          <div class="fact-number" style="color: #facc15;">{{ summary.hospitals.available_beds }}</div>
+          <div style="font-size: 11px; color: #64748b;">Across {{ summary.hospitals.hospital_count }} monitored hospitals</div>
+        </div>
+        <div class="fact-card">
+          <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Field Rescue Units</div>
+          <div class="fact-number" style="color: #c084fc;">{{ summary.emergency_services.active_teams }}</div>
+          <div style="font-size: 11px; color: #64748b;">{{ summary.emergency_services.field_personnel }} personnel deployed</div>
+        </div>
+        <div class="fact-card">
+          <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Disaster Helplines</div>
+          <div class="fact-number" style="color: #f8fafc; font-size: 20px; line-height: 1.6;">112 / 108</div>
+          <div style="font-size: 11px; color: #64748b;">Police, Ambulance &amp; Fire 24x7</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid: Press Releases & Rumor Control Desk -->
+    <div style="display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start;">
+      <!-- Left Column: Official Press Releases -->
+      <div>
+        <h2 style="font-size: 18px; font-weight: 800; color: #f8fafc; margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
+          <span>📰</span> Verified Press Advisories &amp; Official Statements
+        </h2>
+
+        {% if releases %}
+          {% for r in releases %}
+          <article class="release-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-family: monospace; font-weight: 800; color: #38bdf8; background: rgba(56,189,248,0.12); padding: 3px 8px; border-radius: 4px; font-size: 12px;">{{ r.bulletin_no }}</span>
+                <span class="verified-stamp">✓ Verified by State Authority</span>
+              </div>
+              <time style="font-size: 12px; color: #94a3b8;">Published {{ r.published_at }}</time>
+            </div>
+
+            <h3 style="font-size: 18px; font-weight: 800; color: #ffffff; margin: 0 0 10px; line-height: 1.4;">
+              {{ r.headline }}
+            </h3>
+
+            <div style="display: flex; gap: 14px; font-size: 12px; color: #94a3b8; margin-bottom: 14px; flex-wrap: wrap;">
+              <span>📍 <strong>Sector:</strong> {{ r.zone }}</span>
+              <span>⚠️ <strong>Hazard Type:</strong> {{ r.disaster_type }}</span>
+              <span>🏕️ <strong>Sheltered:</strong> {{ r.sheltered_count }} citizens</span>
+            </div>
+
+            <div style="background: rgba(15, 23, 42, 0.6); border-left: 3px solid #38bdf8; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px; font-size: 13.5px; line-height: 1.6; color: #e2e8f0;">
+              {{ r.official_statement }}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #94a3b8; border-top: 1px solid rgba(148,163,184,0.1); padding-top: 12px; flex-wrap: wrap; gap: 8px;">
+              <div>🎙️ <strong>Spokesperson:</strong> {{ r.spokesperson }}</div>
+              <div>📞 <strong>Media Desk Contact:</strong> <a href="mailto:{{ r.media_contact }}" style="color: #38bdf8; text-decoration: none;">{{ r.media_contact }}</a></div>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+          <div class="fact-card" style="text-align: center; padding: 40px; color: #94a3b8;">
+            No official press advisories issued yet. Check back for verified bulletins.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Right Column: Rumor Control / Myth-Buster Desk -->
+      <div class="no-print">
+        <div style="background: var(--press-card); border: 1px solid var(--press-border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+            <h3 style="font-size: 16px; font-weight: 800; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
+              <span>🛡️</span> Fact-Check &amp; Rumor Buster Desk
+            </h3>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 2px 6px; border-radius: 4px;">Active</span>
+          </div>
+          <p style="font-size: 12px; color: #94a3b8; margin: 0 0 14px;">
+            Debunking viral social media claims to prevent panic. News agencies are requested to cross-verify before broadcasting.
+          </p>
+
+          <!-- Myth 1 -->
+          <div class="rumor-box">
+            <div style="font-size: 11px; font-weight: 800; color: #ef4444; text-transform: uppercase; margin-bottom: 3px;">
+              ❌ RUMOR: "Bellandur Lake dam has breached; widespread flooding imminent."
+            </div>
+            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.5;">
+              <strong style="color: #10b981;">✓ FACT CHECK: FALSE.</strong> Automated IoT depth sensors confirm controlled spillway weir overflow only. Sluice gates are operational. Water discharge is within engineered drainage channels.
+            </div>
+          </div>
+
+          <!-- Myth 2 -->
+          <div class="rumor-box">
+            <div style="font-size: 11px; font-weight: 800; color: #ef4444; text-transform: uppercase; margin-bottom: 3px;">
+              ❌ RUMOR: "City hospitals running out of emergency oxygen &amp; trauma beds."
+            </div>
+            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.5;">
+              <strong style="color: #10b981;">✓ FACT CHECK: FALSE.</strong> Live hospital database confirms <strong>{{ summary.hospitals.available_beds }}</strong> designated disaster beds remain unoccupied with uninterrupted power back-up.
+            </div>
+          </div>
+
+          <!-- Myth 3 -->
+          <div class="rumor-box">
+            <div style="font-size: 11px; font-weight: 800; color: #ef4444; text-transform: uppercase; margin-bottom: 3px;">
+              ❌ RUMOR: "Drinking water supply shut down across all South Bangalore sectors."
+            </div>
+            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.5;">
+              <strong style="color: #10b981;">✓ FACT CHECK: FALSE.</strong> Partner NGOs (Red Cross, Goonj) have stockpiled over 2,250 sealed 5L potable water canisters across high-ground relief centers. Free collection available 24/7.
+            </div>
+          </div>
+        </div>
+
+        <!-- Media Contact Desk -->
+        <div style="background: var(--press-card); border: 1px solid var(--press-border); border-radius: 12px; padding: 20px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #f8fafc; margin: 0 0 10px;">
+            Accredited Media Inquiry Desk
+          </h3>
+          <p style="font-size: 12px; color: #94a3b8; line-height: 1.6; margin: 0 0 12px;">
+            Journalists requiring high-resolution drone imagery, official soundbites, or live satellite precipitation maps may reach our 24x7 Press Information Bureau:
+          </p>
+          <div style="font-size: 12px; color: #e2e8f0; line-height: 1.8;">
+            <div>📧 Email: <a href="mailto:media-desk@nirvaha.gov.in" style="color: #38bdf8;">media-desk@nirvaha.gov.in</a></div>
+            <div>📞 Direct Phone: <a href="tel:08022009999" style="color: #38bdf8;">080-2200-9999</a> / <a href="tel:08022009998" style="color: #38bdf8;">9998</a></div>
+            <div>📍 Press Room: State Emergency Operations Centre (SEOC), Multi-Storeyed Building, Bengaluru</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Publish Official Press Release (Admin/Operator only) -->
+  {% if session.get('role') in ['admin', 'operator'] %}
+  <div id="publish-modal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #0f172a; border: 1px solid rgba(148,163,184,0.25); border-radius: 14px; width: 100%; max-width: 580px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 18px; font-weight: 800; color: #f8fafc; margin: 0;">
+          📢 Publish Official Press Statement to Media Wire
+        </h3>
+        <button onclick="closePublishModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+
+      <form id="publish-press-form" onsubmit="submitPressRelease(event)">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Headline / Title</label>
+          <input type="text" id="pr-headline" required placeholder="e.g. Precautionary Flood Evacuation Guidance Issued for Outer Ring Road Sector" style="width: 100%; background: #1e293b; border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 13px;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">District / Zone</label>
+            <input type="text" id="pr-zone" required placeholder="e.g. Bellandur" style="width: 100%; background: #1e293b; border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 13px;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Hazard Type</label>
+            <input type="text" id="pr-disaster-type" required placeholder="e.g. Flash Flooding" style="width: 100%; background: #1e293b; border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 13px;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Official Statement Body</label>
+          <textarea id="pr-statement" rows="4" required placeholder="Enter authoritative guidance, verified ground status, and directives for public broadcasting..." style="width: 100%; background: #1e293b; border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 13px; font-family: inherit;"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Designated Spokesperson</label>
+            <input type="text" id="pr-spokesperson" value="State Disaster Management Authority" style="width: 100%; background: #1e293b; border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 13px;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Citizens Sheltered Count</label>
+            <input type="number" id="pr-sheltered" value="150" min="0" style="width: 100%; background: #1e293b; border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 13px;">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" onclick="closePublishModal()" style="background: #1e293b; border: 1px solid rgba(148,163,184,0.3); color: #f8fafc; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;">Cancel</button>
+          <button type="submit" id="pr-submit-btn" style="background: #2563eb; border: none; color: #fff; font-weight: 700; padding: 8px 18px; border-radius: 6px; font-size: 13px; cursor: pointer;">Broadcast to Media Wire</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openPublishModal() {
+      document.getElementById('publish-modal').style.display = 'flex';
+    }
+    function closePublishModal() {
+      document.getElementById('publish-modal').style.display = 'none';
+    }
+    async function submitPressRelease(e) {
+      e.preventDefault();
+      const headline = document.getElementById('pr-headline').value;
+      const zone = document.getElementById('pr-zone').value;
+      const disaster_type = document.getElementById('pr-disaster-type').value;
+      const statement = document.getElementById('pr-statement').value;
+      const spokesperson = document.getElementById('pr-spokesperson').value;
+      const sheltered = document.getElementById('pr-sheltered').value;
+      const btn = document.getElementById('pr-submit-btn');
+
+      btn.disabled = true;
+      btn.textContent = 'Broadcasting…';
+
+      try {
+        const res = await fetch('/api/admin/press/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            headline, zone, disaster_type, statement, spokesperson, sheltered
+          })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Failed to publish');
+
+        alert('✓ ' + data.message);
+        closePublishModal();
+        window.location.reload();
+      } catch (err) {
+        alert('Publish failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Broadcast to Media Wire';
+      }
+    }
+  </script>
+  {% endif %}
+</body>
+</html>

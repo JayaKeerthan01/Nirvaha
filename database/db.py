@@ -254,6 +254,46 @@ def init_db(seed=True):
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS relief_supplies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            shelter_id INTEGER NOT NULL,
+            item_name TEXT NOT NULL,
+            quantity INTEGER NOT NULL DEFAULT 0,
+            unit TEXT NOT NULL DEFAULT 'units',
+            minimum_required INTEGER NOT NULL DEFAULT 100,
+            status TEXT DEFAULT 'Adequate',
+            last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (shelter_id) REFERENCES shelters(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS relief_volunteers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ngo_name TEXT NOT NULL,
+            contact_person TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            assigned_zone TEXT NOT NULL,
+            active_volunteers INTEGER NOT NULL DEFAULT 10,
+            specialization TEXT DEFAULT 'General Relief',
+            status TEXT DEFAULT 'Active',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS press_releases (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bulletin_no TEXT UNIQUE NOT NULL,
+            headline TEXT NOT NULL,
+            zone TEXT NOT NULL,
+            disaster_type TEXT NOT NULL,
+            official_statement TEXT NOT NULL,
+            verified_casualties INTEGER DEFAULT 0,
+            evacuees_count INTEGER DEFAULT 0,
+            sheltered_count INTEGER DEFAULT 0,
+            spokesperson TEXT DEFAULT 'State Disaster Management Authority',
+            media_contact TEXT DEFAULT 'press@nirvaha.gov.in / 080-2200-9999',
+            status TEXT DEFAULT 'Published',
+            published_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
         CREATE INDEX IF NOT EXISTS idx_users_zone ON users(zone);
         CREATE INDEX IF NOT EXISTS idx_alerts_zone ON alerts(zone);
@@ -265,6 +305,8 @@ def init_db(seed=True):
         CREATE INDEX IF NOT EXISTS idx_iot_sensors_zone ON iot_sensors(zone);
         CREATE INDEX IF NOT EXISTS idx_social_distress_zone ON social_distress(zone);
         CREATE INDEX IF NOT EXISTS idx_emergency_reports_status ON emergency_reports(status);
+        CREATE INDEX IF NOT EXISTS idx_relief_supplies_shelter ON relief_supplies(shelter_id);
+        CREATE INDEX IF NOT EXISTS idx_press_releases_published ON press_releases(published_at);
         """
     )
     conn.commit()
@@ -497,6 +539,80 @@ def _seed_demo_data(conn):
             """INSERT INTO social_distress (platform, username, message, zone, urgency_level, sentiment, verified, post_url)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             demo_social,
+        )
+
+    # Seed initial Relief Supplies for shelters
+    cur.execute("SELECT COUNT(*) AS c FROM relief_supplies")
+    if cur.fetchone()["c"] == 0:
+        shelter_rows = cur.execute("SELECT id, name, zone FROM shelters").fetchall()
+        demo_supplies = []
+        for s in shelter_rows:
+            sid = s["id"]
+            demo_supplies.extend([
+                (sid, "Potable Drinking Water (5L Cans)", 450, "cans", 200, "Adequate"),
+                (sid, "Ready-to-Eat Food Rations", 750, "packs", 300, "Adequate"),
+                (sid, "Emergency Trauma & First Aid Kits", 60, "kits", 40, "Adequate"),
+                (sid, "Thermal Blankets & Bed Rolls", 380, "units", 250, "Adequate"),
+                (sid, "Water Purification Tablets", 1200, "strips", 500, "Adequate"),
+                (sid, "Infant Formula & Baby Care Kits", 85, "kits", 50, "Adequate"),
+            ])
+        cur.executemany(
+            """INSERT INTO relief_supplies (shelter_id, item_name, quantity, unit, minimum_required, status)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            demo_supplies,
+        )
+
+    # Seed initial NGO Relief Partners & Volunteers
+    cur.execute("SELECT COUNT(*) AS c FROM relief_volunteers")
+    if cur.fetchone()["c"] == 0:
+        demo_volunteers = [
+            ("Indian Red Cross Society (Karnataka)", "Dr. Arvind Rao", "+91-98800-REDX-01", "HSR Layout", 45, "Medical Aid & Triage", "Active"),
+            ("Goonj Disaster Relief Initiative", "Meera Kulkarni", "+91-98800-GNJ-02", "Bellandur", 38, "Food & Clothing Distribution", "Active"),
+            ("Rapid Response Disaster Relief NGO", "Kiran Hegde", "+91-98800-RRD-03", "Koramangala", 30, "Shelter Management & Water Purification", "Active"),
+            ("Akshaya Patra Emergency Feeding Wing", "R. Swaminathan", "+91-98800-AKP-04", "BTM Layout", 55, "Hot Meals & Mass Kitchen", "Active"),
+            ("SEEDS India Community Resilience Cell", "Pooja Deshmukh", "+91-98800-SDS-05", "Electronic City", 25, "Logistics & Search Support", "Active"),
+        ]
+        cur.executemany(
+            """INSERT INTO relief_volunteers (ngo_name, contact_person, phone, assigned_zone, active_volunteers, specialization, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            demo_volunteers,
+        )
+
+    # Seed initial Media Press Releases & Verified Situation Reports
+    cur.execute("SELECT COUNT(*) AS c FROM press_releases")
+    if cur.fetchone()["c"] == 0:
+        demo_press = [
+            (
+                "SITREP-2026-09-001",
+                "Official Advisory: State Disaster Authority Issues Urban Flood Preparedness Guidance for Bengaluru South",
+                "Bellandur",
+                "Urban Flooding",
+                "The State Disaster Management Authority (SDMA) has activated 5 regional emergency coordination hubs across Bengaluru. Moderate to heavy catchment rainfall has caused controlled spillway runoff at Bellandur and Madiwala lakes. Citizens are advised to follow official evacuation corridors. All 15 district hospitals maintain dedicated trauma bed reserves. Beware of unverified social media rumors.",
+                0,
+                380,
+                245,
+                "Director of Emergency Communications, SDMA",
+                "media-desk@nirvaha.gov.in | +91-80-2200-9999",
+                "Published",
+            ),
+            (
+                "SITREP-2026-09-002",
+                "Press Bulletin: 5 Emergency Relief Camps Activated with Free Rations and Medical Aid in HSR Layout and Koramangala",
+                "HSR Layout",
+                "Flash Flood / Drainage Surcharge",
+                "SDMA in partnership with the Indian Red Cross and Goonj has operationalized five high-ground relief shelters equipped with potable drinking water, clean bedding, and pediatric supplies. Admission is open 24/7 with zero documentation requirements for affected citizens. Emergency ambulances (108) and NDRF boat teams remain stationed.",
+                0,
+                520,
+                390,
+                "Principal Disaster Relief Commissioner",
+                "media-desk@nirvaha.gov.in | +91-80-2200-9999",
+                "Published",
+            ),
+        ]
+        cur.executemany(
+            """INSERT INTO press_releases (bulletin_no, headline, zone, disaster_type, official_statement, verified_casualties, evacuees_count, sheltered_count, spokesperson, media_contact, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            demo_press,
         )
 
     conn.commit()
@@ -1311,6 +1427,139 @@ def update_emergency_report_status(report_id, status):
 
 def delete_emergency_report(report_id):
     return query("DELETE FROM emergency_reports WHERE id = ?", (report_id,))
+
+
+# -------------------------------------------------- relief & NGOs (Stakeholder 5) -----
+
+def get_shelters_with_supplies(zone=None):
+    shelters = get_shelters(zone)
+    for s in shelters:
+        supplies = query("SELECT * FROM relief_supplies WHERE shelter_id = ? ORDER BY id", (s["id"],))
+        s["supplies"] = supplies
+        s["occupancy_pct"] = round((s["current_occupancy"] / max(s["capacity"], 1)) * 100, 1)
+        s["critical_supplies_count"] = sum(1 for sup in supplies if sup["status"] == "Critical")
+    return shelters
+
+
+def get_shelter_supplies(shelter_id):
+    return query("SELECT * FROM relief_supplies WHERE shelter_id = ? ORDER BY id", (shelter_id,))
+
+
+def update_shelter_supply(supply_id, quantity, status=None):
+    if status is None:
+        target = query("SELECT minimum_required FROM relief_supplies WHERE id = ?", (supply_id,), fetchone=True)
+        min_req = target["minimum_required"] if target else 100
+        if quantity <= (min_req * 0.3):
+            status = "Critical"
+        elif quantity <= min_req:
+            status = "Low"
+        else:
+            status = "Adequate"
+    query(
+        "UPDATE relief_supplies SET quantity = ?, status = ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?",
+        (quantity, status, supply_id),
+    )
+    return query("SELECT * FROM relief_supplies WHERE id = ?", (supply_id,), fetchone=True)
+
+
+def update_shelter_occupancy(shelter_id, current_occupancy):
+    query(
+        "UPDATE shelters SET current_occupancy = ? WHERE id = ?",
+        (max(0, current_occupancy), shelter_id),
+    )
+    return query("SELECT * FROM shelters WHERE id = ?", (shelter_id,), fetchone=True)
+
+
+def get_relief_volunteers(zone=None):
+    if zone:
+        return query("SELECT * FROM relief_volunteers WHERE LOWER(assigned_zone) = LOWER(?) ORDER BY ngo_name", (zone,))
+    return query("SELECT * FROM relief_volunteers ORDER BY assigned_zone, ngo_name")
+
+
+# ------------------------------------------------ media & news (Stakeholder 6) -----
+
+def get_press_releases(published_only=True):
+    if published_only:
+        return query("SELECT * FROM press_releases WHERE status = 'Published' ORDER BY published_at DESC")
+    return query("SELECT * FROM press_releases ORDER BY published_at DESC")
+
+
+def get_press_release_by_id(release_id):
+    return query("SELECT * FROM press_releases WHERE id = ?", (release_id,), fetchone=True)
+
+
+def add_press_release(bulletin_no, headline, zone, disaster_type, official_statement,
+                      verified_casualties=0, evacuees_count=0, sheltered_count=0,
+                      spokesperson="State Disaster Management Authority",
+                      media_contact="media-desk@nirvaha.gov.in", status="Published"):
+    query(
+        """INSERT OR REPLACE INTO press_releases
+           (bulletin_no, headline, zone, disaster_type, official_statement, verified_casualties, evacuees_count, sheltered_count, spokesperson, media_contact, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (bulletin_no, headline, zone, disaster_type, official_statement,
+         verified_casualties, evacuees_count, sheltered_count, spokesperson, media_contact, status),
+    )
+    return query("SELECT * FROM press_releases WHERE bulletin_no = ?", (bulletin_no,), fetchone=True)
+
+
+def get_stakeholders_summary():
+    """Generates an operational snapshot across all 6 External Stakeholders."""
+    hospitals = query("SELECT COUNT(*) as cnt, SUM(beds_total) as tot_beds, SUM(beds_available) as avail_beds, SUM(ambulances_available) as amb FROM hospitals", fetchone=True) or {}
+    shelters = query("SELECT COUNT(*) as cnt, SUM(capacity) as tot_cap, SUM(current_occupancy) as occ FROM shelters", fetchone=True) or {}
+    teams = query("SELECT COUNT(*) as cnt, SUM(personnel) as staff, SUM(vehicles) as veh FROM rescue_teams", fetchone=True) or {}
+    users_cnt = query("SELECT COUNT(*) as cnt FROM users WHERE role = 'citizen'", fetchone=True) or {}
+    volunteers = query("SELECT COUNT(*) as ngo_cnt, SUM(active_volunteers) as total_volunteers FROM relief_volunteers", fetchone=True) or {}
+    press_cnt = query("SELECT COUNT(*) as cnt FROM press_releases WHERE status = 'Published'", fetchone=True) or {}
+    incidents_cnt = query("SELECT COUNT(*) as cnt FROM emergency_reports", fetchone=True) or {}
+
+    return {
+        "authorities": {
+            "name": "Disaster Management Authorities",
+            "role": "Central Command & Policy Oversight",
+            "status": "Active 24x7",
+            "active_dashboards": 1,
+        },
+        "emergency_services": {
+            "name": "Emergency Services (Police, Fire, Rescue)",
+            "role": "Tactical Ground Deployment & Evacuation",
+            "status": "Ready",
+            "active_teams": teams.get("cnt") or 0,
+            "field_personnel": teams.get("staff") or 0,
+            "rescue_vehicles": teams.get("veh") or 0,
+        },
+        "hospitals": {
+            "name": "Hospitals & Medical Facilities",
+            "role": "Emergency Triage & Trauma Bed Allocation",
+            "status": "Operational",
+            "hospital_count": hospitals.get("cnt") or 0,
+            "available_beds": hospitals.get("avail_beds") or 0,
+            "ambulances": hospitals.get("amb") or 0,
+        },
+        "citizens": {
+            "name": "Public / Citizens",
+            "role": "Evacuation Route Navigation & SOS Hazard Reporting",
+            "status": "Connected",
+            "registered_citizens": users_cnt.get("cnt") or 0,
+            "citizen_reports_filed": incidents_cnt.get("cnt") or 0,
+        },
+        "ngos": {
+            "name": "NGOs & Relief Organizations",
+            "role": "Emergency Shelter Management & Mass Ration Supplies",
+            "status": "Mobilized",
+            "partner_ngos": volunteers.get("ngo_cnt") or 0,
+            "active_volunteers": volunteers.get("total_volunteers") or 0,
+            "relief_shelters": shelters.get("cnt") or 0,
+            "shelter_capacity": shelters.get("tot_cap") or 0,
+            "current_evacuees": shelters.get("occ") or 0,
+        },
+        "media": {
+            "name": "Media & News Agencies",
+            "role": "Public Broadcast Transmission & Official Press Advisories",
+            "status": "Broadcasting",
+            "published_releases": press_cnt.get("cnt") or 0,
+            "bulletin_route": "/press",
+        },
+    }
 
 
 

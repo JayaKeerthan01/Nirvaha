@@ -73,6 +73,10 @@ from database.db import (
     create_emergency_report, get_emergency_reports, update_emergency_report_status,
     get_emergency_report_stats, get_pending_emergency_reports_count,
     get_emergency_report_by_id, delete_emergency_report,
+    get_shelters_with_supplies, get_shelter_supplies, update_shelter_supply,
+    update_shelter_occupancy, get_relief_volunteers,
+    get_press_releases, get_press_release_by_id, add_press_release,
+    get_stakeholders_summary,
 )
 from agents.weather_agent import weather_agent
 from agents.traffic_agent import traffic_agent
@@ -1397,6 +1401,171 @@ def api_emergency_report_delete(report_id):
     delete_emergency_report(report_id)
     log_audit("DELETE_INCIDENT_REPORT", f"Deleted Citizen Incident #{report_id} ({report['disaster_type']} at {report['location']})")
     return jsonify({"ok": True, "report_id": report_id, "stats": get_emergency_report_stats()})
+
+
+# ------------------------------------------------ NGOs & Relief Portal (Stakeholder 5) -----
+
+@app.route("/relief")
+@staff_required
+def relief_portal():
+    """NGOs & Relief Organizations operations dashboard."""
+    zones = get_zones()
+    return render_template("relief.html", zones=zones)
+
+
+@app.route("/api/relief/overview")
+@staff_required
+def api_relief_overview():
+    zone = request.args.get("zone")
+    shelters = get_shelters_with_supplies(zone)
+    volunteers = get_relief_volunteers(zone)
+
+    total_capacity = sum(s["capacity"] for s in shelters)
+    total_occupancy = sum(s["current_occupancy"] for s in shelters)
+    total_volunteers = sum(v["active_volunteers"] for v in volunteers)
+    critical_shortages = sum(s["critical_supplies_count"] for s in shelters)
+
+    return jsonify({
+        "ok": True,
+        "shelters": shelters,
+        "volunteers": volunteers,
+        "kpi": {
+            "total_shelters": len(shelters),
+            "total_capacity": total_capacity,
+            "total_occupancy": total_occupancy,
+            "occupancy_rate": round((total_occupancy / max(total_capacity, 1)) * 100, 1),
+            "total_volunteers": total_volunteers,
+            "partner_ngos": len(volunteers),
+            "critical_shortages": critical_shortages,
+        },
+    })
+
+
+@app.route("/api/relief/supplies/<int:supply_id>", methods=["POST"])
+@staff_required
+def api_relief_update_supply(supply_id):
+    data = request.get_json(silent=True) or {}
+    qty = data.get("quantity")
+    if qty is None:
+        return jsonify({"ok": False, "error": "Quantity required"}), 400
+    try:
+        qty = int(qty)
+    except ValueError:
+        return jsonify({"ok": False, "error": "Invalid quantity"}), 400
+    status = data.get("status")
+    updated = update_shelter_supply(supply_id, qty, status)
+    log_audit("UPDATE_RELIEF_SUPPLY", f"Updated relief supply #{supply_id} stock to {qty}")
+    return jsonify({"ok": True, "supply": updated})
+
+
+@app.route("/api/relief/shelters/<int:shelter_id>/occupancy", methods=["POST"])
+@staff_required
+def api_relief_update_occupancy(shelter_id):
+    data = request.get_json(silent=True) or {}
+    occ = data.get("occupancy")
+    if occ is None:
+        return jsonify({"ok": False, "error": "Occupancy count required"}), 400
+    try:
+        occ = int(occ)
+    except ValueError:
+        return jsonify({"ok": False, "error": "Invalid occupancy"}), 400
+    updated = update_shelter_occupancy(shelter_id, occ)
+    log_audit("UPDATE_SHELTER_OCCUPANCY", f"Updated shelter #{shelter_id} occupancy to {occ}")
+    return jsonify({"ok": True, "shelter": updated})
+
+
+@app.route("/api/relief/request-aid", methods=["POST"])
+@staff_required
+def api_relief_request_aid():
+    data = request.get_json(silent=True) or {}
+    shelter_id = data.get("shelter_id")
+    item = data.get("item_name", "Emergency Relief Supplies")
+    notes = data.get("notes", "Urgent replenishment requested by camp coordinator")
+
+    actor = session.get("user_name") or "Relief Coordinator"
+    notification_service.dispatch_broadcast(
+        title=f"RELIEF SUPPLY REPLENISHMENT: {item}",
+        message=f"Shelter #{shelter_id} has requested immediate logistics restock of {item}. Notes: {notes}",
+        channels=["push", "email"],
+        sender=actor,
+    )
+    log_audit("RELIEF_AID_DISPATCH_REQUEST", f"Emergency aid request created for Shelter #{shelter_id} ({item})")
+    return jsonify({"ok": True, "message": f"Replenishment request dispatched to NGO supply chain for {item}"})
+
+
+# ------------------------------------------------ Media & News Desk (Stakeholder 6) -----
+
+@app.route("/press")
+def press_portal():
+    """Public-facing Media Desk & Verified Situation Reports (No login required for journalists)."""
+    releases = get_press_releases(published_only=True)
+    summary = get_stakeholders_summary()
+    return render_template("press.html", releases=releases, summary=summary)
+
+
+@app.route("/api/press/feed")
+def api_press_feed():
+    """Public JSON feed of official verified government advisories."""
+    releases = get_press_releases(published_only=True)
+    summary = get_stakeholders_summary()
+    return jsonify({
+        "ok": True,
+        "agency": "State Disaster Management Authority (SDMA) - NIRVAHA Emergency Communications",
+        "verified_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "releases": releases,
+        "verified_statistics": {
+            "total_hospitals_active": summary["hospitals"]["hospital_count"],
+            "trauma_beds_available": summary["hospitals"]["available_beds"],
+            "relief_camps_open": summary["ngos"]["relief_shelters"],
+            "citizens_sheltered": summary["ngos"]["current_evacuees"],
+            "rescue_teams_fielded": summary["emergency_services"]["active_teams"],
+            "verified_casualties": sum(r.get("verified_casualties", 0) for r in releases),
+        },
+    })
+
+
+@app.route("/api/admin/press/publish", methods=["POST"])
+@staff_required
+def api_admin_press_publish():
+    data = request.get_json(silent=True) or {}
+    headline = (data.get("headline") or "").strip()
+    zone = (data.get("zone") or "Bangalore Metropolitan").strip()
+    disaster_type = (data.get("disaster_type") or "General Emergency").strip()
+    statement = (data.get("statement") or "").strip()
+    casualties = int(data.get("casualties") or 0)
+    evacuees = int(data.get("evacuees") or 0)
+    sheltered = int(data.get("sheltered") or 0)
+    spokesperson = (data.get("spokesperson") or "State Disaster Management Authority").strip()
+    contact = (data.get("media_contact") or "media-desk@nirvaha.gov.in | 080-2200-9999").strip()
+
+    if not headline or not statement:
+        return jsonify({"ok": False, "error": "Headline and official statement are required"}), 400
+
+    import time
+    bulletin_no = f"SITREP-{int(time.time())}"
+    rel = add_press_release(
+        bulletin_no=bulletin_no,
+        headline=headline,
+        zone=zone,
+        disaster_type=disaster_type,
+        official_statement=statement,
+        verified_casualties=casualties,
+        evacuees_count=evacuees,
+        sheltered_count=sheltered,
+        spokesperson=spokesperson,
+        media_contact=contact,
+        status="Published",
+    )
+    log_audit("PUBLISH_PRESS_RELEASE", f"Published official media bulletin {bulletin_no}: {headline}")
+    return jsonify({"ok": True, "release": rel, "message": "Official press bulletin successfully published to media wire"})
+
+
+@app.route("/stakeholders")
+@staff_required
+def stakeholders_overview():
+    """External Stakeholders Master Matrix View."""
+    summary = get_stakeholders_summary()
+    return render_template("stakeholders.html", summary=summary)
 
 
 if __name__ == "__main__":
