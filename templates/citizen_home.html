@@ -2,24 +2,54 @@
 {% block title %}Community Safety{% endblock %}
 
 {% block content %}
+<!-- DYNAMIC EMERGENCY ALERT BANNER -->
+<div id="citizen-emergency-banner" style="display:none; margin-bottom:20px;"></div>
+
 <div class="citizen-hero">
   <h1>Current risk near you</h1>
-  <p>Updated automatically every {{ (poll_interval_ms / 1000) | int }} seconds from live weather data.</p>
+  <p>Monitored in real-time. Live district telemetry refreshed every {{ (poll_interval_ms / 1000) | int }} seconds.</p>
 </div>
 
-<div class="big-card">
+<div class="big-card" style="margin-bottom:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="section-title" style="margin-bottom:0;">District Risk &amp; Hazard Radar</div>
+    {% if home_zone %}<span class="badge badge-info">Home: {{ home_zone }}</span>{% endif %}
+  </div>
   <div id="risk-list">
-    <div class="empty-state">Loading…</div>
+    <div class="empty-state">Scanning live weather sensors…</div>
   </div>
 </div>
 
-<div class="big-card" style="display:flex; gap:14px; flex-wrap:wrap;">
-  <a href="{{ url_for('citizen_evacuation') }}" class="btn btn-primary">Find evacuation route</a>
-  <a href="{{ url_for('citizen_hospitals') }}" class="btn btn-ghost">Nearby hospitals</a>
-  <a href="{{ url_for('citizen_chat') }}" class="btn btn-ghost">Ask Nirvaha a question</a>
+<!-- Quick Community Actions -->
+<div class="big-card" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
+  <a href="{{ url_for('citizen_evacuation') }}" class="btn btn-primary" style="gap:6px;">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    Find Evacuation Route &amp; Relief Shelter
+  </a>
+  <a href="{{ url_for('citizen_hospitals') }}" class="btn btn-ghost" style="gap:6px;">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+    Safe Operational Hospitals
+  </a>
+  <a href="{{ url_for('citizen_chat') }}" class="btn btn-ghost" style="gap:6px;">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Ask Nirvaha AI Assistant
+  </a>
+</div>
+
+<!-- Emergency Hotlines Quick Strip -->
+<div class="card" style="background:rgba(15,23,42,0.6); border:1px solid var(--border-subtle);">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div style="font-size:13px; color:var(--fog-300);">
+      <strong>Emergency Hotlines:</strong> Ambulance: <span class="mono" style="color:#FFF;">108</span> &bull; Police: <span class="mono" style="color:#FFF;">100</span> &bull; State Disaster Control: <span class="mono" style="color:#FFF;">1077</span>
+    </div>
+    <div class="zone-meta" style="color:var(--signal-info);">Stay tuned to local radio 102.9 FM for civil defense broadcasts</div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script>
+  window.USER_HOME_ZONE = {{ (home_zone or '')|tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/citizen_home.js') }}"></script>
 {% endblock %}

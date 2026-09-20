@@ -1,10 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Overview{% endblock %}
+{% block title %}Command Overview{% endblock %}
 {% block page_title %}Mission Overview{% endblock %}
-{% block page_subtitle %}COORDINATOR AGENT · ALL SYSTEMS REPORTING{% endblock %}
+{% block page_subtitle %}COORDINATOR AGENT · ALL SYSTEMS REPORTING · REAL-TIME OPS{% endblock %}
 
 {% block content %}
-<div class="grid grid-4" style="margin-bottom:18px;">
+<!-- 1. LIVE EMERGENCY BROADCAST & BULLETIN TICKER -->
+<div class="emergency-ticker" id="emergency-ticker">
+  <div class="ticker-badge"><span class="live-dot"></span> LIVE OPS</div>
+  <div class="ticker-content" id="ticker-text">Scanning regional telemetry: All monitored zones connected. Real-time sensor feed active.</div>
+  <div class="ticker-time" id="ticker-time">--:--:--</div>
+</div>
+
+<!-- 2. TOP METRIC CARDS -->
+<div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:18px;">
+  <div class="card">
+    <div class="card-eyebrow">Active Incidents <span class="live-dot" style="background:#FF5470;"></span></div>
+    <div class="metric-value mono" id="m-incidents" style="color:var(--alert-critical);">0</div>
+    <div class="metric-label" id="m-incidents-sub">High &amp; moderate hazard zones</div>
+  </div>
   <div class="card">
     <div class="card-eyebrow">Weather Status <span class="live-dot"></span></div>
     <div class="metric-value" id="m-weather-risk">—</div>
@@ -16,17 +29,183 @@
     <div class="metric-label" id="m-traffic-zone">Worst road condition</div>
   </div>
   <div class="card">
-    <div class="card-eyebrow">Hospital Status <span class="live-dot"></span></div>
+    <div class="card-eyebrow">Hospital Network <span class="live-dot"></span></div>
     <div class="metric-value" id="m-beds">—</div>
-    <div class="metric-label">Beds available network-wide</div>
+    <div class="metric-label" id="m-beds-sub">Beds available network-wide</div>
   </div>
   <div class="card">
-    <div class="card-eyebrow">Rescue Status <span class="live-dot"></span></div>
+    <div class="card-eyebrow">Rescue Force <span class="live-dot"></span></div>
     <div class="metric-value" id="m-teams">—</div>
-    <div class="metric-label">Teams currently available</div>
+    <div class="metric-label" id="m-teams-sub">Teams available now</div>
   </div>
 </div>
 
+<!-- 3. ADVANCED METRIC GAUGES & READINESS METERS -->
+<div class="grid grid-split" style="margin-bottom:18px;">
+  <!-- Hospital Network Readiness Gauge -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div class="section-title" style="margin-bottom:0;">Hospital Capacity &amp; Resource Meter</div>
+      <span class="badge badge-info" id="hosp-occupancy-badge">0% Occupancy</span>
+    </div>
+    <div class="resource-gauges">
+      <div class="gauge-row">
+        <div class="gauge-label-wrap">
+          <span class="gauge-name">Bed Availability</span>
+          <span class="gauge-stat mono" id="gauge-beds-text">0 / 0</span>
+        </div>
+        <div class="meter-bar-track">
+          <div class="meter-bar-fill" id="gauge-beds-fill" style="width: 50%;"></div>
+        </div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label-wrap">
+          <span class="gauge-name">ICU Capacity</span>
+          <span class="gauge-stat mono" id="gauge-icu-text">0 ICU Available</span>
+        </div>
+        <div class="meter-bar-track">
+          <div class="meter-bar-fill meter-icu" id="gauge-icu-fill" style="width: 50%;"></div>
+        </div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label-wrap">
+          <span class="gauge-name">Active Medical Personnel</span>
+          <span class="gauge-stat mono" id="gauge-doctors-text">0 Doctors on Duty</span>
+        </div>
+        <div class="meter-bar-track">
+          <div class="meter-bar-fill meter-doc" id="gauge-doctors-fill" style="width: 65%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rescue Force Readiness & Fleet Mobilization -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div class="section-title" style="margin-bottom:0;">Rescue Force Readiness &amp; Fleet Status</div>
+      <span class="badge badge-available" id="rescue-status-badge">Fleet Ready</span>
+    </div>
+    <div class="fleet-metrics-grid">
+      <div class="fleet-tile">
+        <div class="fleet-val mono" id="fleet-avail-teams">0</div>
+        <div class="fleet-lbl">Available Teams</div>
+      </div>
+      <div class="fleet-tile">
+        <div class="fleet-val mono" id="fleet-deployed-teams">0</div>
+        <div class="fleet-lbl">Deployed Units</div>
+      </div>
+      <div class="fleet-tile">
+        <div class="fleet-val mono" id="fleet-ambulances">0</div>
+        <div class="fleet-lbl">Ambulances</div>
+      </div>
+      <div class="fleet-tile">
+        <div class="fleet-val mono" id="fleet-fire">0</div>
+        <div class="fleet-lbl">Fire Trucks</div>
+      </div>
+    </div>
+    <div class="meter-bar-track" style="margin-top:14px;">
+      <div class="meter-bar-fill meter-rescue" id="gauge-rescue-fill" style="width: 100%;"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--fog-400); margin-top:5px;" class="mono">
+      <span>Mobilization Index</span>
+      <span id="fleet-mobilization-pct">0% Fielded</span>
+    </div>
+  </div>
+</div>
+
+<!-- 4. UNIFIED SITUATIONAL COMMAND MAP (Google Maps / Leaflet) -->
+<div class="card" style="margin-bottom:18px; padding:0; overflow:hidden;">
+  <div class="map-command-toolbar">
+    <div class="toolbar-left">
+      <div class="toolbar-title">
+        <span class="live-dot"></span> Situational Map
+      </div>
+      <!-- Layer Filter Pills -->
+      <div class="layer-pill-group">
+        <button class="layer-pill active" data-layer="all">All Layers</button>
+        <button class="layer-pill active" data-layer="zones">⚡ Zones</button>
+        <button class="layer-pill" data-layer="heatmap">🔥 Risk Heatmap</button>
+        <button class="layer-pill" data-layer="satellite_radar">🛰️ Satellite Radar</button>
+        <button class="layer-pill active" data-layer="iot_sensors">📡 IoT Sensors</button>
+        <button class="layer-pill" data-layer="social_distress">💬 Social SOS</button>
+        <button class="layer-pill active" data-layer="hospitals">🏥 Hospitals</button>
+        <button class="layer-pill active" data-layer="teams">🚒 Rescue Units</button>
+        <button class="layer-pill active" data-layer="alerts">⚠ Alerts</button>
+        <button class="layer-pill active" data-layer="routes">🛣 Auto-Routes</button>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <!-- Basemap Switchers -->
+      <div class="basemap-pill-group">
+        <button class="basemap-pill active" data-basemap="dark">Dark</button>
+        <button class="basemap-pill" data-basemap="osm">Street</button>
+        <button class="basemap-pill" data-basemap="satellite">Satellite</button>
+      </div>
+      <button class="btn btn-ghost" id="recenter-map-btn" style="padding:4px 9px; font-size:11px;">Recenter</button>
+    </div>
+  </div>
+
+  <div id="map" class="map-canvas" style="height: 520px;"></div>
+
+  <!-- Map Legend Footer -->
+  <div class="map-legend-bar">
+    <div class="legend-item"><span class="legend-dot" style="background:#FF5470;"></span> High Risk Zone</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#FFB238;"></span> Medium Risk Zone</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#2DD4BF;"></span> Low Risk Zone</div>
+    <div class="legend-item">📡 IoT Water/Flood Sensor</div>
+    <div class="legend-item">💬 Social SOS Report</div>
+    <div class="legend-item">🏥 Hospital (with Bed Status)</div>
+    <div class="legend-item">🚒 Rescue Team (Stationed / Deployed)</div>
+    <div class="legend-item">⚠ Active Disaster Alert</div>
+    <div class="legend-item"><span class="legend-line" style="border-color:#5EA8FF;"></span> Evacuation / Hospital Route</div>
+    <div class="legend-item"><span class="legend-line" style="border-color:#FFB238;"></span> Rescue Dispatch Route</div>
+  </div>
+</div>
+
+<!-- 5. HOSPITAL & RESCUE AUTO-ASSIGNMENT & ROUTING COMMAND MATRIX -->
+<div class="card" style="margin-bottom:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+    <div>
+      <div class="section-title" style="margin-bottom:2px;">Hospital &amp; Rescue Auto-Assignment Engine</div>
+      <div class="metric-label">Auto-routes closest hospital &amp; auto-assigns nearest rescue unit by geography for every district</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <!-- Auto-Dispatch Autonomous Mode Toggle -->
+      <label class="auto-toggle-label" title="When ON, system autonomously dispatches units as soon as a zone escalates to High risk">
+        <input type="checkbox" id="auto-dispatch-toggle">
+        <span class="auto-toggle-slider"></span>
+        <span class="auto-toggle-text" id="auto-dispatch-label">Autonomous Dispatch: OFF</span>
+      </label>
+
+      <!-- Batch Auto-Assign Button -->
+      <button class="btn btn-primary" id="auto-assign-all-btn" style="gap:6px;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Auto-Assign All Units &amp; Routes
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Disaster Zone</th>
+          <th>Risk Level</th>
+          <th>Auto-Routed Hospital</th>
+          <th>Hospital ETA &amp; Beds</th>
+          <th>Nearest Rescue Unit</th>
+          <th>Unit ETA &amp; Dist</th>
+          <th>Status / Action</th>
+        </tr>
+      </thead>
+      <tbody id="auto-assignment-rows">
+        <tr><td colspan="7" class="empty-state">Computing geographical assignments…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 6. DUAL PANEL: ZONE PRIORITIES & ACTIVE DEPLOYMENTS -->
 <div class="grid grid-split" style="margin-bottom:18px;">
   <div class="card">
     <div class="section-title">Zone risk &amp; priority ranking</div>
@@ -36,24 +215,87 @@
   </div>
 
   <div class="card">
-    <div class="section-title">Recommended deployment</div>
+    <div class="section-title">Deployment status &amp; recommendations</div>
     <div id="deployment-panel">
       <div class="empty-state">Waiting for Rescue Agent…</div>
     </div>
   </div>
 </div>
 
-<div class="grid grid-split">
-  <div class="card" style="min-height:420px;">
-    <div class="card-eyebrow">Live situational map <span class="live-dot"></span></div>
-    <div id="map" class="map-canvas"></div>
+<!-- 7. HOSPITAL CAPACITY COMPARISON CHART -->
+<div class="card" style="margin-bottom:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+    <div>
+      <div class="section-title" style="margin-bottom:2px;">Hospital Network Capacity Breakdown</div>
+      <div class="metric-label">Real-time bed occupancy, ICU reserves, and doctor availability across major regional centers</div>
+    </div>
+    <span class="badge badge-info mono" id="hosp-chart-total-label">-- Beds Monitored</span>
+  </div>
+  <div class="hospital-capacity-chart-grid" id="hosp-capacity-bars">
+    <div class="empty-state">Loading hospital network capacity metrics…</div>
+  </div>
+</div>
+
+<!-- 8. LIVE IOT SENSORS & SOCIAL MEDIA SOS FEEDS -->
+<div class="grid grid-split" style="margin-bottom:18px;">
+  <!-- IoT Sensor Telemetry -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div>
+        <div class="section-title" style="margin-bottom:2px;">📡 IoT Water &amp; Flood Depth Telemetry</div>
+        <div class="metric-label">Physical lake gauges, stormwater spillways, and river sensors</div>
+      </div>
+      <span class="badge badge-info mono" id="iot-sensor-count-badge">5 Sensors Online</span>
+    </div>
+    <div id="iot-sensors-list" style="display:flex; flex-direction:column; gap:10px;">
+      <div class="empty-state">Ingesting IoT sensor telemetry…</div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="section-title">Nearest suitable hospitals</div>
-    <div id="hospital-recs">
-      <div class="empty-state">Waiting for Hospital Agent…</div>
+  <!-- Real Social Media SOS & Verified Emergency Intelligence Feeds -->
+  <div class="card" id="social-media-intel-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+      <div>
+        <div class="section-title" style="margin-bottom:2px; display:flex; align-items:center; gap:8px;">
+          💬 Social Media SOS &amp; Emergency News
+          <span class="live-dot" style="background:#2DD4BF;"></span>
+        </div>
+        <div class="metric-label">Real-time verified emergency intelligence strictly from 𝕏 Twitter, 📸 Instagram, and 📘 Facebook</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="badge badge-high mono" id="social-sos-count-badge">Live Stream</span>
+        <button class="btn btn-ghost" id="pull-social-feeds-btn" title="Pulls the latest real-time emergency broadcasts and verified news" style="padding:4px 10px; font-size:11.5px; display:flex; align-items:center; gap:5px;">
+          <span id="pull-icon">🔄</span> Pull Live Feeds
+        </button>
+      </div>
     </div>
+
+    <!-- Platform Filter Tabs -->
+    <div class="social-platform-filters" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.06);">
+      <button class="social-filter-btn active" data-platform="all">🌐 All Channels</button>
+      <button class="social-filter-btn" data-platform="Twitter">𝕏 Twitter</button>
+      <button class="social-filter-btn" data-platform="Instagram">📸 Instagram</button>
+      <button class="social-filter-btn" data-platform="Facebook">📘 Facebook</button>
+      <button class="social-filter-btn" data-platform="verified">🛡️ Official Verified Only</button>
+    </div>
+
+    <div id="social-distress-stream" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:4px;">
+      <div class="empty-state">Connecting to verified social channels…</div>
+    </div>
+  </div>
+</div>
+
+<!-- 9. DEPLOYMENT & DISPATCH TIMELINE -->
+<div class="card" style="margin-bottom:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+    <div>
+      <div class="section-title" style="margin-bottom:2px;">Deployment &amp; Dispatch Timeline</div>
+      <div class="metric-label">Chronological operational log of unit activations, field assignments, and recalls</div>
+    </div>
+    <span class="badge badge-available" id="timeline-count-badge">0 Active Deployments</span>
+  </div>
+  <div class="deployment-timeline-wrap" id="deployment-timeline-list">
+    <div class="empty-state">No active field deployments logged.</div>
   </div>
 </div>
 {% endblock %}

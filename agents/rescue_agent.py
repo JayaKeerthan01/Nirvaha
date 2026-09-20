@@ -122,7 +122,7 @@ class RescueAgent:
         stale snapshot from whenever the dashboard last polled."""
         return {w["zone"]: w for w in weather_agent.assess_all_zones()}
 
-    def deploy(self, zone, deployed_by=None):
+    def deploy(self, zone, deployed_by=None, weather_by_zone=None):
         """Dispatches the recommended team for `zone` and reserves beds at
         the best-suited hospital. Returns the created deployment record, or
         None if no team is currently available."""
@@ -139,7 +139,8 @@ class RescueAgent:
         teams.sort(key=lambda t: t["_distance"])
         team = teams[0]
 
-        hospitals = hospital_agent.recommend_for_zone(zone_obj, top_n=1, weather_by_zone=self._current_weather_by_zone())
+        wbz = weather_by_zone if weather_by_zone is not None else self._current_weather_by_zone()
+        hospitals = hospital_agent.recommend_for_zone(zone_obj, top_n=1, weather_by_zone=wbz)
         hospital = hospitals[0] if hospitals else None
 
         beds_reserved = 0

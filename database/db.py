@@ -25,7 +25,7 @@ Changelog (hardening pass):
     previously defined in the schema but nothing ever inserted into it.
   - Added citizen-facing accounts: `users.zone` (home zone, nullable) and
     `role='citizen'` as a valid, self-registerable role alongside the
-    seeded admin/operator accounts. See app.py::signup.
+    seeded admin/sub-admin accounts. See app.py::signup.
 """
 
 import sqlite3
@@ -37,9 +37,13 @@ from config import Config
 
 
 def get_connection():
-    conn = sqlite3.connect(Config.DATABASE_PATH)
+    conn = sqlite3.connect(Config.DATABASE_PATH, timeout=20.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    conn.execute("PRAGMA cache_size = -64000")
+    conn.execute("PRAGMA temp_store = MEMORY")
     return conn
 
 
@@ -57,6 +61,7 @@ def init_db(seed=True):
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT DEFAULT 'operator',
+            phone TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -152,6 +157,114 @@ def init_db(seed=True):
             success INTEGER NOT NULL,
             attempted_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alert_id INTEGER,
+            channel TEXT NOT NULL,
+            recipient TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            zone TEXT,
+            status TEXT DEFAULT 'sent',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS system_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            user_name TEXT,
+            role TEXT,
+            action TEXT NOT NULL,
+            target_type TEXT,
+            target_id TEXT,
+            details TEXT,
+            ip_address TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            reset_code_hash TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            used INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS shelters (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            zone TEXT NOT NULL,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL,
+            capacity INTEGER DEFAULT 500,
+            current_occupancy INTEGER DEFAULT 0,
+            contact TEXT,
+            status TEXT DEFAULT 'open'
+        );
+
+        CREATE TABLE IF NOT EXISTS iot_sensors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sensor_id TEXT UNIQUE NOT NULL,
+            sensor_name TEXT NOT NULL,
+            sensor_type TEXT NOT NULL,
+            zone TEXT NOT NULL,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL,
+            current_value REAL NOT NULL,
+            unit TEXT NOT NULL,
+            warning_threshold REAL NOT NULL,
+            critical_threshold REAL NOT NULL,
+            status TEXT DEFAULT 'Normal',
+            battery_pct INTEGER DEFAULT 100,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS social_distress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            platform TEXT NOT NULL,
+            username TEXT NOT NULL,
+            message TEXT NOT NULL,
+            zone TEXT NOT NULL,
+            urgency_level TEXT DEFAULT 'High',
+            sentiment REAL DEFAULT -0.8,
+            verified INTEGER DEFAULT 0,
+            post_url TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS emergency_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reporter_name TEXT NOT NULL,
+            reporter_phone TEXT NOT NULL,
+            disaster_type TEXT NOT NULL,
+            location TEXT NOT NULL,
+            lat REAL,
+            lon REAL,
+            description TEXT NOT NULL,
+            severity TEXT DEFAULT 'High',
+            status TEXT DEFAULT 'Pending',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+        CREATE INDEX IF NOT EXISTS idx_users_zone ON users(zone);
+        CREATE INDEX IF NOT EXISTS idx_alerts_zone ON alerts(zone);
+        CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at);
+        CREATE INDEX IF NOT EXISTS idx_disasters_loc_date ON disasters(location, date);
+        CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
+        CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
+        CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at);
+        CREATE INDEX IF NOT EXISTS idx_iot_sensors_zone ON iot_sensors(zone);
+        CREATE INDEX IF NOT EXISTS idx_social_distress_zone ON social_distress(zone);
+        CREATE INDEX IF NOT EXISTS idx_emergency_reports_status ON emergency_reports(status);
         """
     )
     conn.commit()
@@ -165,12 +278,44 @@ def init_db(seed=True):
         "ALTER TABLE users ADD COLUMN verification_code_hash TEXT",
         "ALTER TABLE users ADD COLUMN verification_expires TEXT",
         "ALTER TABLE users ADD COLUMN last_seen TEXT",
+        "ALTER TABLE users ADD COLUMN phone TEXT",
     ):
         try:
             cur.execute(statement)
             conn.commit()
         except sqlite3.OperationalError:
             pass  # column already exists
+
+    # Deduplicate hospitals and enforce unique index
+    try:
+        cur.execute("""
+            DELETE FROM hospitals WHERE id NOT IN (
+                SELECT MIN(id) FROM hospitals GROUP BY LOWER(TRIM(hospital_name)), LOWER(TRIM(location))
+            )
+        """)
+        cur.execute("DELETE FROM hospitals WHERE contact = 'Zone Service Desk' OR contact LIKE '%Desk%'")
+        conn.commit()
+    except Exception:
+        pass
+
+    try:
+        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_hospitals_name_loc ON hospitals(hospital_name, location)")
+        conn.commit()
+    except Exception:
+        pass
+
+    try:
+        cur.execute("ALTER TABLE social_distress ADD COLUMN post_url TEXT")
+        conn.commit()
+    except Exception:
+        pass
+
+    try:
+        # Enforce strictly Twitter, Instagram, and Facebook
+        cur.execute("DELETE FROM social_distress WHERE platform NOT IN ('Twitter', 'Instagram', 'Facebook')")
+        conn.commit()
+    except Exception:
+        pass
 
     if seed:
         _seed_demo_data(conn)
@@ -181,22 +326,38 @@ def init_db(seed=True):
 def _seed_demo_data(conn):
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) AS c FROM users")
+    cur.execute("UPDATE users SET role = 'operator' WHERE role = 'sub_admin'")
+
+    legacy_email = "operator@disaster-response.local"
+    subadmin_email = "subadmin@disaster-response.local"
+    row = cur.execute(
+        "SELECT id FROM users WHERE email IN (?, ?)",
+        (legacy_email, subadmin_email),
+    ).fetchone()
+    if row:
+        cur.execute(
+            "UPDATE users SET name = ?, email = ?, password_hash = ?, role = 'operator', email_verified = 1 WHERE email IN (?, ?)",
+            ("Sub Admin", subadmin_email, generate_password_hash("subadmin123"), legacy_email, subadmin_email),
+        )
+    else:
+        cur.execute(
+            "INSERT INTO users (name, email, password_hash, role, email_verified) VALUES (?, ?, ?, ?, 1)",
+            ("Sub Admin", subadmin_email, generate_password_hash("subadmin123"), "operator"),
+        )
+
+    cur.execute("SELECT COUNT(*) AS c FROM users WHERE email = ?", ("admin@disaster-response.local",))
     if cur.fetchone()["c"] == 0:
         cur.execute(
             "INSERT INTO users (name, email, password_hash, role, email_verified) VALUES (?, ?, ?, ?, 1)",
             ("Duty Officer", "admin@disaster-response.local",
              generate_password_hash("admin123"), "admin"),
         )
+
+    cur.execute("SELECT COUNT(*) AS c FROM users WHERE email = ?", (subadmin_email,))
+    if cur.fetchone()["c"] == 0:
         cur.execute(
             "INSERT INTO users (name, email, password_hash, role, email_verified) VALUES (?, ?, ?, ?, 1)",
-            ("Field Operator", "operator@disaster-response.local",
-             generate_password_hash("operator123"), "operator"),
-        )
-        cur.execute(
-            "INSERT INTO users (name, email, password_hash, role, zone, email_verified) VALUES (?, ?, ?, ?, ?, 1)",
-            ("Resident", "resident@disaster-response.local",
-             generate_password_hash("resident123"), "citizen", "HSR Layout"),
+            ("Sub Admin", subadmin_email, generate_password_hash("subadmin123"), "operator"),
         )
 
     cur.execute("SELECT COUNT(*) AS c FROM zones")
@@ -254,6 +415,90 @@ def _seed_demo_data(conn):
             teams,
         )
 
+    cur.execute("SELECT COUNT(*) AS c FROM shelters")
+    if cur.fetchone()["c"] == 0:
+        demo_shelters = [
+            ("HSR Central Disaster Relief Shelter", "HSR Layout", 12.9130, 77.6410, 800, 120, "080-2500-1111"),
+            ("Bellandur High-Ground Relief Center", "Bellandur", 12.9350, 77.6740, 600, 45, "080-2500-2222"),
+            ("BTM Community Relief Complex", "BTM Layout", 12.9210, 77.6050, 750, 90, "080-2500-3333"),
+            ("Electronic City Emergency Shelter", "Electronic City", 12.8510, 77.6620, 1000, 150, "080-2500-4444"),
+            ("Koramangala Indoor Relief Camp", "Koramangala", 12.9390, 77.6210, 850, 80, "080-2500-5555"),
+        ]
+        cur.executemany(
+            "INSERT INTO shelters (name, zone, lat, lon, capacity, current_occupancy, contact) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            demo_shelters,
+        )
+
+    # For any monitored zone that currently has fewer than 2 real hospitals, auto-populate real hospitals
+    try:
+        from utils.hospital_search import get_real_hospitals_for_location
+        all_zones = cur.execute("SELECT name, lat, lon FROM zones").fetchall()
+        for z in all_zones:
+            z_name = z["name"]
+            h_cnt = cur.execute("SELECT COUNT(*) AS c FROM hospitals WHERE LOWER(TRIM(location)) = LOWER(TRIM(?))", (z_name,)).fetchone()["c"]
+            if h_cnt < 2:
+                real_hosps = get_real_hospitals_for_location(z_name, z["lat"], z["lon"])
+                for rh in real_hosps:
+                    cur.execute(
+                        """INSERT OR IGNORE INTO hospitals
+                           (hospital_name, location, lat, lon, beds_total, beds_available,
+                            doctors_available, ambulances_available, icu_available, contact)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            rh["hospital_name"],
+                            z_name,
+                            rh["lat"],
+                            rh["lon"],
+                            rh["beds_total"],
+                            rh["beds_available"],
+                            rh["doctors_available"],
+                            rh["ambulances_available"],
+                            rh["icu_available"],
+                            rh["contact"],
+                        ),
+                    )
+    except Exception:
+        pass
+
+    # Seed initial IoT Sensors
+    cur.execute("SELECT COUNT(*) AS c FROM iot_sensors")
+    if cur.fetchone()["c"] == 0:
+        demo_sensors = [
+            ("SENSOR-HSR-AGARA-01", "Agara Lake Inflow Water Depth Gauge", "Water Level", "HSR Layout", 12.9190, 77.6430, 1.85, "m", 2.5, 3.2, "Normal", 94),
+            ("SENSOR-BELL-OUTFLOW-02", "Bellandur Lake Spillway Crest Gauge", "Water Level", "Bellandur", 12.9350, 77.6740, 2.30, "m", 2.8, 3.5, "Normal", 89),
+            ("SENSOR-BTM-MADIWALA-03", "Madiwala Lake Wetland Level Telemetry", "Water Level", "BTM Layout", 12.9180, 77.6180, 1.40, "m", 2.2, 3.0, "Normal", 96),
+            ("SENSOR-ECITY-DRAIN-04", "Electronic City Phase 1 Main Storm Drain", "Flow Depth", "Electronic City", 12.8480, 77.6620, 0.75, "m", 1.8, 2.5, "Normal", 91),
+            ("SENSOR-KORA-VALLEY-05", "Koramangala Valley Stormwater Culvert Sensor", "Water Level", "Koramangala", 12.9310, 77.6250, 1.65, "m", 2.4, 3.1, "Normal", 88),
+        ]
+        cur.executemany(
+            """INSERT INTO iot_sensors (sensor_id, sensor_name, sensor_type, zone, lat, lon, current_value, unit, warning_threshold, critical_threshold, status, battery_pct)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            demo_sensors,
+        )
+
+    # Seed initial Social Media Distress Feed (Strictly Twitter, Instagram, and Facebook)
+    cur.execute("SELECT COUNT(*) AS c FROM social_distress")
+    if cur.fetchone()["c"] == 0:
+        demo_social = [
+            ("Twitter", "@KarnatakaSNDMC", "Heavy rainfall warning (Orange Alert) issued for Bengaluru Urban & South taluks for next 24 hours. Emergency response teams on standby. #BangaloreRains", "Bellandur", "High", -0.70, 1, "https://x.com/KarnatakaSNDMC"),
+            ("Twitter", "@BlrCityPolice", "Traffic diversion in effect near 100ft Road Koramangala & Sony World junction due to water accumulation. Commuters requested to take alternate routes. Dial 112 for rescue.", "Koramangala", "High", -0.65, 1, "https://x.com/BlrCityPolice"),
+            ("Twitter", "@BBMPCOMM", "BBMP Emergency Flood Control Rooms activated across all 8 zones. Citizens facing fallen trees or severe waterlogging can call 1533 or 080-22660000.", "HSR Layout", "High", -0.50, 1, "https://x.com/BBMPCOMM"),
+            ("Twitter", "@TOIBengaluru", "Water entered several apartment basements along Outer Ring Road following sudden high-intensity downpour. BBMP pumping motors deployed.", "Bellandur", "Critical", -0.85, 1, "https://x.com/TOIBengaluru"),
+            ("Instagram", "@bengalurucitypolice", "URGENT PUBLIC ADVISORY: Waterlogging reported near Silk Board junction and BTM 2nd Stage. Our officers are assisting stranded motorists. Avoid unnecessary travel.", "BTM Layout", "High", -0.65, 1, "https://www.instagram.com/bengalurucitypolice"),
+            ("Instagram", "@karnatakastatepolice", "SDRF and Fire & Emergency Services deployed inflatable boats in low-lying residential clusters of Bellandur and HSR Layout for evacuation of senior citizens.", "Bellandur", "Critical", -0.90, 1, "https://www.instagram.com/karnatakastatepolice"),
+            ("Instagram", "@bbmp.official", "Precautionary tree-trimming and stormwater desilting operations underway in Koramangala and Electronic City corridors. 24x7 control team active.", "Electronic City", "Moderate", -0.40, 1, "https://www.instagram.com/bbmp.official"),
+            ("Instagram", "@bangaloretimesofficial", "Flash rain leaves multiple key roads inundated in Bengaluru South. Citizens share videos of submerged subways.", "BTM Layout", "Moderate", -0.55, 1, "https://www.instagram.com/bangaloretimesofficial"),
+            ("Facebook", "Karnataka State Natural Disaster Monitoring Centre (KSNDMC)", "Rainfall Summary & Forecast: Widespread heavy rainfall recorded across Bengaluru. Madiwala Lake and Bellandur catchment levels rising. Citizens in low-lying valleys advised to remain vigilant.", "BTM Layout", "High", -0.75, 1, "https://www.facebook.com/KSNDMC"),
+            ("Facebook", "Bengaluru City Police Emergency Response", "Control Room Dispatch Update: Emergency calls from Koramangala and HSR Layout dispatched to field rescue units. 4 quick response teams actively assisting residents.", "Koramangala", "High", -0.60, 1, "https://www.facebook.com/blrcitypolice"),
+            ("Facebook", "BBMP Disaster Management Control Room", "Helpline Numbers for Urban Flooding: Central Control Room 080-22221188 / 9480685700. WhatsApp helpline active for sharing geo-tagged incident photos.", "HSR Layout", "Moderate", -0.30, 1, "https://www.facebook.com/bbmp.controlroom"),
+            ("Facebook", "Bengaluru Traffic Police (BTP) Live Updates", "Heavy water stagnation under Electronic City elevated toll plaza and Silk Board junction. Traffic moving at slow pace. Recovery cranes stationed.", "Electronic City", "Moderate", -0.50, 1, "https://www.facebook.com/bangaloretrafficpolice"),
+        ]
+        cur.executemany(
+            """INSERT INTO social_distress (platform, username, message, zone, urgency_level, sentiment, verified, post_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            demo_social,
+        )
+
     conn.commit()
 
 
@@ -298,14 +543,125 @@ def get_zones():
     return rows
 
 
+def ensure_real_hospitals_for_zone(zone_name, lat, lon):
+    """Discovers and adds genuine, accredited real hospitals for the zone. Guarantees no duplicates."""
+    from utils.hospital_search import get_real_hospitals_for_location
+    real_hospitals = get_real_hospitals_for_location(zone_name, lat, lon)
+    for h in real_hospitals:
+        existing = query(
+            "SELECT id FROM hospitals WHERE LOWER(TRIM(hospital_name)) = LOWER(TRIM(?)) AND LOWER(TRIM(location)) = LOWER(TRIM(?))",
+            (h["hospital_name"], zone_name),
+            fetchone=True,
+        )
+        if not existing:
+            query(
+                """INSERT OR IGNORE INTO hospitals
+                   (hospital_name, location, lat, lon, beds_total, beds_available,
+                    doctors_available, ambulances_available, icu_available, contact)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    h["hospital_name"],
+                    zone_name,
+                    h["lat"],
+                    h["lon"],
+                    h["beds_total"],
+                    h["beds_available"],
+                    h["doctors_available"],
+                    h["ambulances_available"],
+                    h["icu_available"],
+                    h["contact"],
+                ),
+            )
+
+
 def add_zone(name, lat, lon, density):
-    return query(
-        "INSERT INTO zones (name, lat, lon, density) VALUES (?, ?, ?, ?)",
-        (name, lat, lon, density),
+    normalized = (name or "").strip()
+    if not normalized:
+        raise ValueError("Zone name is required.")
+
+    existing = query(
+        "SELECT id FROM zones WHERE LOWER(name) = LOWER(?)",
+        (normalized,),
+        fetchone=True,
     )
+    if existing:
+        zone_id = existing["id"]
+        ensure_real_hospitals_for_zone(normalized, lat, lon)
+        return zone_id
+
+    zone_id = query(
+        "INSERT INTO zones (name, lat, lon, density) VALUES (?, ?, ?, ?)",
+        (normalized, lat, lon, density),
+    )
+
+    # 1. Auto-discover and add genuine accredited real hospitals (zero duplicates, no fake hospitals)
+    ensure_real_hospitals_for_zone(normalized, lat, lon)
+
+    # 2. Rescue team
+    query(
+        "INSERT INTO rescue_teams (team_name, zone, lat, lon, vehicles, ambulances, fire_units, personnel, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'available')",
+        (
+            f"{normalized} Rapid Response",
+            normalized,
+            lat,
+            lon,
+            8,
+            3,
+            2,
+            18,
+        ),
+    )
+
+    # 3. Relief shelter
+    existing_shelter = query("SELECT id FROM shelters WHERE LOWER(zone) = LOWER(?)", (normalized,), fetchone=True)
+    if not existing_shelter:
+        query(
+            "INSERT INTO shelters (name, zone, lat, lon, capacity, current_occupancy, contact) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                f"{normalized} Relief Shelter",
+                normalized,
+                round(lat + 0.005, 4),
+                round(lon + 0.005, 4),
+                600,
+                0,
+                "108",
+            ),
+        )
+
+    # 4. Zone state
+    query(
+        "INSERT INTO zone_state (zone, last_risk_level, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(zone) DO NOTHING",
+        (normalized, "Low"),
+    )
+
+    return zone_id
 
 
 def delete_zone(zone_id):
+    zone = query("SELECT * FROM zones WHERE id = ?", (zone_id,), fetchone=True)
+    if not zone:
+        return
+
+    zone_name = zone["name"]
+    # 1. Clear deployments linked to zone or hospitals in that zone
+    query(
+        "DELETE FROM deployments WHERE zone = ? OR hospital_id IN (SELECT id FROM hospitals WHERE LOWER(TRIM(location)) = LOWER(TRIM(?)))",
+        (zone_name, zone_name),
+    )
+    # 2. Delete all hospitals belonging to this location
+    query("DELETE FROM hospitals WHERE LOWER(TRIM(location)) = LOWER(TRIM(?))", (zone_name,))
+    # 3. Delete shelters in this zone
+    query("DELETE FROM shelters WHERE LOWER(TRIM(zone)) = LOWER(TRIM(?))", (zone_name,))
+    # 4. Delete rescue teams in this zone
+    query("DELETE FROM rescue_teams WHERE LOWER(TRIM(zone)) = LOWER(TRIM(?))", (zone_name,))
+    # 5. Delete zone alerts, disasters, traffic, zone_state
+    query("DELETE FROM alerts WHERE LOWER(TRIM(zone)) = LOWER(TRIM(?))", (zone_name,))
+    query("DELETE FROM disasters WHERE LOWER(TRIM(location)) = LOWER(TRIM(?))", (zone_name,))
+    query("DELETE FROM traffic WHERE LOWER(TRIM(location)) = LOWER(TRIM(?))", (zone_name,))
+    query("DELETE FROM zone_state WHERE LOWER(TRIM(zone)) = LOWER(TRIM(?))", (zone_name,))
+    # 6. Remove all users registered in this zone
+    query("DELETE FROM users WHERE LOWER(TRIM(zone)) = LOWER(TRIM(?))", (zone_name,))
+    # 7. Delete the zone itself
     query("DELETE FROM zones WHERE id = ?", (zone_id,))
 
 
@@ -412,15 +768,15 @@ def get_user_by_email(email):
     return query("SELECT * FROM users WHERE email = ?", (email,), fetchone=True)
 
 
-def create_citizen(name, email, password_hash, zone=None):
+def create_citizen(name, email, password_hash, zone=None, phone=None):
     """Public signup always creates role='citizen' — there is no way to
-    self-register as admin/operator through this function; those accounts
+    self-register as admin/sub-admin through this function; those accounts
     are only ever created by seeding or directly in the database. Starts
     unverified; see set_verification_code()/mark_email_verified()."""
     return query(
-        "INSERT INTO users (name, email, password_hash, role, zone, email_verified) "
-        "VALUES (?, ?, ?, 'citizen', ?, 0)",
-        (name, email, password_hash, zone),
+        "INSERT INTO users (name, email, password_hash, role, zone, email_verified, phone) "
+        "VALUES (?, ?, ?, 'citizen', ?, 0, ?)",
+        (name, email, password_hash, zone, phone),
     )
 
 
@@ -496,7 +852,396 @@ def citizen_account_stats():
 
 def get_recent_citizens(limit=25):
     return query(
-        "SELECT id, name, email, zone, email_verified, last_seen, created_at "
+        "SELECT id, name, email, phone, zone, email_verified, last_seen, created_at "
         "FROM users WHERE role = 'citizen' ORDER BY created_at DESC LIMIT ?",
         (limit,),
     )
+
+
+# ------------------------------------------------------- notifications -----
+
+def log_notification(channel, recipient, title, message, zone=None, status="sent", alert_id=None):
+    return query(
+        """INSERT INTO notifications (channel, recipient, title, message, zone, status, alert_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (channel, recipient, title, message, zone, status, alert_id),
+    )
+
+
+def get_recent_notifications(limit=50):
+    return query("SELECT * FROM notifications ORDER BY id DESC LIMIT ?", (limit,))
+
+
+def get_users_by_zone(zone_name):
+    return query("SELECT * FROM users WHERE LOWER(zone) = LOWER(?)", (zone_name,))
+
+
+def get_all_contactable_users():
+    return query("SELECT * FROM users WHERE (email IS NOT NULL AND email != '') OR (phone IS NOT NULL AND phone != '')")
+
+
+# ---------------------------------------------------- system settings -----
+
+def get_setting(key, default=None):
+    row = query("SELECT value FROM system_settings WHERE key = ?", (key,), fetchone=True)
+    return row["value"] if row else default
+
+
+def set_setting(key, value):
+    query(
+        """INSERT INTO system_settings (key, value, updated_at)
+           VALUES (?, ?, CURRENT_TIMESTAMP)
+           ON CONFLICT(key) DO UPDATE SET
+             value = excluded.value,
+             updated_at = CURRENT_TIMESTAMP""",
+        (key, str(value)),
+    )
+
+
+def is_auto_dispatch_enabled():
+    val = get_setting("auto_dispatch_enabled", None)
+    if val is None:
+        return getattr(Config, "AUTO_DISPATCH_DEFAULT", False)
+    return val.lower() in ("1", "true", "yes", "on")
+
+
+def set_auto_dispatch_enabled(enabled):
+    set_setting("auto_dispatch_enabled", "1" if enabled else "0")
+
+
+# ----------------------------------------------------------- audit log -----
+
+def log_audit(*args, **kwargs):
+    """Flexible audit logging supporting positional or keyword args:
+    log_audit(user_id, user_name, role, action, target_type, target_id, details, ip_address)
+    OR
+    log_audit(action=..., target_type=..., target_id=..., details=..., ...)
+    """
+    user_id = kwargs.get("user_id")
+    user_name = kwargs.get("user_name")
+    role = kwargs.get("role")
+    action = kwargs.get("action", "ACTION")
+    target_type = kwargs.get("target_type")
+    target_id = kwargs.get("target_id")
+    details = kwargs.get("details")
+    ip_address = kwargs.get("ip_address")
+
+    if len(args) == 8:
+        user_id, user_name, role, action, target_type, target_id, details, ip_address = args
+    elif len(args) >= 4:
+        if isinstance(args[0], (int,)) or (args[0] is None and len(args) >= 7):
+            user_id = args[0]
+            user_name = args[1]
+            role = args[2]
+            action = args[3]
+            target_type = args[4] if len(args) > 4 else None
+            target_id = args[5] if len(args) > 5 else None
+            details = args[6] if len(args) > 6 else None
+            ip_address = args[7] if len(args) > 7 else None
+        else:
+            action = args[0]
+            target_type = args[1]
+            target_id = args[2]
+            details = args[3]
+            if len(args) > 4: user_name = args[4]
+            if len(args) > 5: role = args[5]
+            if len(args) > 6: user_id = args[6]
+            if len(args) > 7: ip_address = args[7]
+
+    return query(
+        """INSERT INTO audit_logs (user_id, user_name, role, action, target_type, target_id, details, ip_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (user_id, user_name, role, action, target_type, str(target_id) if target_id is not None else None, details, ip_address),
+    )
+
+
+def get_audit_logs(limit=100, action=None, role=None):
+    clauses = []
+    params = []
+    if action:
+        clauses.append("action = ?")
+        params.append(action)
+    if role:
+        clauses.append("role = ?")
+        params.append(role)
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    sql = f"SELECT * FROM audit_logs {where} ORDER BY id DESC LIMIT ?"
+    params.append(limit)
+    return query(sql, tuple(params))
+
+
+# ------------------------------------------------------------- shelters -----
+
+def get_shelters(zone=None):
+    if zone:
+        return query("SELECT * FROM shelters WHERE LOWER(zone) = LOWER(?) ORDER BY name", (zone,))
+    return query("SELECT * FROM shelters ORDER BY zone, name")
+
+
+# ------------------------------------------------------- bulk data import -----
+
+def bulk_insert_zones(rows):
+    """rows: list of dicts with keys name, lat, lon, density"""
+    conn = get_connection()
+    cur = conn.cursor()
+    imported = 0
+    errors = []
+
+    for idx, r in enumerate(rows, start=1):
+        name = (r.get("name") or "").strip()
+        if not name:
+            errors.append(f"Row {idx}: Name missing.")
+            continue
+        try:
+            lat = float(r.get("lat", 0))
+            lon = float(r.get("lon", 0))
+            density = float(r.get("density", 0.5))
+            cur.execute(
+                """INSERT INTO zones (name, lat, lon, density)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(name) DO UPDATE SET lat=excluded.lat, lon=excluded.lon, density=excluded.density""",
+                (name, lat, lon, density),
+            )
+            # Ensure zone_state exists
+            cur.execute("INSERT INTO zone_state (zone, last_risk_level) VALUES (?, 'Low') ON CONFLICT(zone) DO NOTHING", (name,))
+            imported += 1
+        except Exception as e:
+            errors.append(f"Row {idx} ({name}): {e}")
+
+    conn.commit()
+    conn.close()
+
+    # Automatically ensure real hospitals exist for imported zones
+    for r in rows:
+        name = (r.get("name") or "").strip()
+        if name:
+            try:
+                lat = float(r.get("lat", 0))
+                lon = float(r.get("lon", 0))
+                ensure_real_hospitals_for_zone(name, lat, lon)
+            except Exception:
+                pass
+
+    return {"imported": imported, "errors": errors}
+
+
+def bulk_insert_hospitals(rows):
+    """rows: list of dicts with hospital_name, location, lat, lon, beds_total, beds_available, doctors, ambulances, icu, contact"""
+    conn = get_connection()
+    cur = conn.cursor()
+    imported = 0
+    errors = []
+
+    for idx, r in enumerate(rows, start=1):
+        name = (r.get("hospital_name") or "").strip()
+        location = (r.get("location") or "").strip()
+        if not name or not location:
+            errors.append(f"Row {idx}: hospital_name or location missing.")
+            continue
+        try:
+            existing = cur.execute(
+                "SELECT id FROM hospitals WHERE LOWER(TRIM(hospital_name)) = LOWER(TRIM(?)) AND LOWER(TRIM(location)) = LOWER(TRIM(?))",
+                (name, location),
+            ).fetchone()
+            if existing:
+                h_id = existing["id"] if isinstance(existing, dict) else existing[0]
+                cur.execute(
+                    """UPDATE hospitals SET
+                        lat = ?, lon = ?, beds_total = ?, beds_available = ?,
+                        doctors_available = ?, ambulances_available = ?, icu_available = ?, contact = ?
+                       WHERE id = ?""",
+                    (
+                        float(r.get("lat", 12.9)),
+                        float(r.get("lon", 77.6)),
+                        int(r.get("beds_total", 100)),
+                        int(r.get("beds_available", 20)),
+                        int(r.get("doctors_available", 15)),
+                        int(r.get("ambulances_available", 4)),
+                        int(r.get("icu_available", 8)),
+                        r.get("contact", "108"),
+                        h_id,
+                    ),
+                )
+            else:
+                cur.execute(
+                    """INSERT INTO hospitals (hospital_name, location, lat, lon, beds_total, beds_available, doctors_available, ambulances_available, icu_available, contact)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        name,
+                        location,
+                        float(r.get("lat", 12.9)),
+                        float(r.get("lon", 77.6)),
+                        int(r.get("beds_total", 100)),
+                        int(r.get("beds_available", 20)),
+                        int(r.get("doctors_available", 15)),
+                        int(r.get("ambulances_available", 4)),
+                        int(r.get("icu_available", 8)),
+                        r.get("contact", "108"),
+                    ),
+                )
+            imported += 1
+        except Exception as e:
+            errors.append(f"Row {idx} ({name}): {e}")
+
+    conn.commit()
+    conn.close()
+    return {"imported": imported, "errors": errors}
+
+
+def bulk_insert_teams(rows):
+    """rows: list of dicts with team_name, zone, lat, lon, vehicles, ambulances, fire_units, personnel, status"""
+    conn = get_connection()
+    cur = conn.cursor()
+    imported = 0
+    errors = []
+
+    for idx, r in enumerate(rows, start=1):
+        name = (r.get("team_name") or "").strip()
+        zone = (r.get("zone") or "").strip()
+        if not name or not zone:
+            errors.append(f"Row {idx}: team_name or zone missing.")
+            continue
+        try:
+            cur.execute(
+                """INSERT INTO rescue_teams (team_name, zone, lat, lon, vehicles, ambulances, fire_units, personnel, status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    name,
+                    zone,
+                    float(r.get("lat", 12.9)),
+                    float(r.get("lon", 77.6)),
+                    int(r.get("vehicles", 4)),
+                    int(r.get("ambulances", 2)),
+                    int(r.get("fire_units", 2)),
+                    int(r.get("personnel", 16)),
+                    r.get("status", "available").strip().lower() or "available",
+                ),
+            )
+            imported += 1
+        except Exception as e:
+            errors.append(f"Row {idx} ({name}): {e}")
+
+    conn.commit()
+    conn.close()
+    return {"imported": imported, "errors": errors}
+
+
+# ---------------------------------------------------- password reset -----
+
+def create_password_reset_code(user_id, code_hash, expires_at):
+    # Invalidate previous unused codes
+    query("UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0", (user_id,))
+    return query(
+        """INSERT INTO password_resets (user_id, reset_code_hash, expires_at, used)
+           VALUES (?, ?, ?, 0)""",
+        (user_id, code_hash, expires_at),
+    )
+
+
+def verify_password_reset_code(user_id, code_hash):
+    row = query(
+        """SELECT * FROM password_resets
+           WHERE user_id = ? AND reset_code_hash = ? AND used = 0 AND expires_at >= CURRENT_TIMESTAMP
+           ORDER BY id DESC LIMIT 1""",
+        (user_id, code_hash),
+        fetchone=True,
+    )
+    return bool(row)
+
+
+def consume_password_reset(user_id, new_password_hash):
+    query("UPDATE users SET password_hash = ? WHERE id = ?", (new_password_hash, user_id))
+    query("UPDATE password_resets SET used = 1 WHERE user_id = ?", (user_id,))
+
+
+# ---------------------------------------------------------- IoT Sensors -----
+
+def get_all_iot_sensors():
+    return query("SELECT * FROM iot_sensors ORDER BY zone, sensor_name")
+
+
+def update_iot_sensor_reading(sensor_id, value, battery_pct=None):
+    sensor = query("SELECT * FROM iot_sensors WHERE sensor_id = ?", (sensor_id,), fetchone=True)
+    if not sensor:
+        return None
+    val = float(value)
+    status = "Normal"
+    if val >= sensor["critical_threshold"]:
+        status = "Critical"
+    elif val >= sensor["warning_threshold"]:
+        status = "Warning"
+
+    if battery_pct is not None:
+        query(
+            "UPDATE iot_sensors SET current_value = ?, status = ?, battery_pct = ?, updated_at = CURRENT_TIMESTAMP WHERE sensor_id = ?",
+            (val, status, int(battery_pct), sensor_id),
+        )
+    else:
+        query(
+            "UPDATE iot_sensors SET current_value = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE sensor_id = ?",
+            (val, status, sensor_id),
+        )
+    return {"sensor_id": sensor_id, "current_value": val, "status": status}
+
+
+# ---------------------------------------------------- Social Media SOS -----
+
+def get_social_distress_feed(limit=30, zone=None, platform=None, verified_only=False):
+    sql = "SELECT * FROM social_distress WHERE platform IN ('Twitter', 'Instagram', 'Facebook')"
+    params = []
+    if zone:
+        sql += " AND LOWER(TRIM(zone)) = LOWER(TRIM(?))"
+        params.append(zone)
+    if platform:
+        sql += " AND LOWER(TRIM(platform)) = LOWER(TRIM(?))"
+        params.append(platform)
+    if verified_only:
+        sql += " AND verified = 1"
+    sql += " ORDER BY created_at DESC LIMIT ?"
+    params.append(limit)
+    return query(sql, params)
+
+
+def log_social_distress(platform, username, message, zone, urgency_level="High", sentiment=-0.7, verified=0, post_url=None):
+    # Strict validation: Only Twitter, Instagram, and Facebook allowed
+    plat = (platform or "Twitter").strip()
+    if plat.lower() in ("twitter", "x", "twitter / x", "twitter/x"):
+        plat = "Twitter"
+    elif plat.lower() in ("instagram", "insta", "ig"):
+        plat = "Instagram"
+    elif plat.lower() in ("facebook", "fb"):
+        plat = "Facebook"
+    else:
+        plat = "Twitter"
+
+    return query(
+        """INSERT INTO social_distress (platform, username, message, zone, urgency_level, sentiment, verified, post_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (plat, username, message, zone, urgency_level, sentiment, int(verified), post_url),
+    )
+
+
+# --------------------------------------------------- Emergency Reports -----
+
+def create_emergency_report(reporter_name, reporter_phone, disaster_type, location, lat, lon, description, severity="High"):
+    return query(
+        """INSERT INTO emergency_reports (reporter_name, reporter_phone, disaster_type, location, lat, lon, description, severity, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')""",
+        (reporter_name, reporter_phone, disaster_type, location, lat, lon, description, severity),
+    )
+
+
+def get_emergency_reports(limit=50, status=None):
+    if status:
+        return query(
+            "SELECT * FROM emergency_reports WHERE status = ? ORDER BY created_at DESC LIMIT ?",
+            (status, limit),
+        )
+    return query("SELECT * FROM emergency_reports ORDER BY created_at DESC LIMIT ?", (limit,))
+
+
+def update_emergency_report_status(report_id, status):
+    return query("UPDATE emergency_reports SET status = ? WHERE id = ?", (status, report_id))
+
+
+

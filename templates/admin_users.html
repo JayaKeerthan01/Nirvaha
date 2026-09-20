@@ -25,12 +25,13 @@
 <div class="card">
   <div class="section-title">Recent signups</div>
   <table>
-    <thead><tr><th>Name</th><th>Email</th><th>Home zone</th><th>Verified</th><th>Last seen</th><th>Joined</th></tr></thead>
+    <thead><tr><th>Name</th><th>Email</th><th>Mobile (SMS)</th><th>Home zone</th><th>Verified</th><th>Last seen</th><th>Joined</th></tr></thead>
     <tbody id="citizen-rows">
       {% for c in citizens %}
       <tr>
         <td>{{ c.name }}</td>
         <td class="mono">{{ c.email }}</td>
+        <td class="mono" style="color:var(--signal-info);">{{ c.phone or "—" }}</td>
         <td>{{ c.zone or "—" }}</td>
         <td>
           {% if c.email_verified %}<span class="badge badge-low">Verified</span>
@@ -41,7 +42,7 @@
       </tr>
       {% endfor %}
       {% if not citizens %}
-      <tr><td colspan="6" class="empty-state">No community accounts yet.</td></tr>
+      <tr><td colspan="7" class="empty-state">No community accounts yet.</td></tr>
       {% endif %}
     </tbody>
   </table>

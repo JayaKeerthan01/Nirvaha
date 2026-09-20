@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Bulk Data Import{% endblock %}
+{% block page_title %}Bulk Data Import{% endblock %}
+{% block page_subtitle %}ADMIN ONLY · BULK INGEST ZONES, HOSPITALS, OR RESCUE UNITS VIA CSV{% endblock %}
+
+{% block content %}
+<div class="grid grid-split">
+  <!-- Upload / Ingestion Form -->
+  <div class="card">
+    <div class="section-title">Upload or Paste CSV Data</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="{{ 'flash-error' if category == 'error' else 'flash-success' }}" style="margin-bottom:14px;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('admin_import') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="field">
+        <label for="entity_type">Entity Category</label>
+        <select id="entity_type" name="entity_type" class="select-lg" onchange="updateSampleLink()">
+          <option value="zones">Monitored Zones (name, lat, lon, density)</option>
+          <option value="hospitals">Hospital Facilities (name, location, lat, lon, beds, etc.)</option>
+          <option value="teams">Rescue Response Teams (name, zone, equipment, personnel)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label for="csv_file" style="margin-bottom:0;">Upload CSV File</label>
+          <a id="sample-csv-link" href="{{ url_for('admin_import_sample', entity_type='zones') }}" class="btn btn-ghost" style="padding:3px 8px; font-size:11px;" download>
+            ⬇ Download Sample Template
+          </a>
+        </div>
+        <input type="file" id="csv_file" name="csv_file" accept=".csv,text/csv">
+      </div>
+
+      <div class="field">
+        <label for="csv_text">Or Paste CSV Text Directly</label>
+        <textarea id="csv_text" name="csv_text" rows="8" class="mono" style="font-size:12px;" placeholder="name,lat,lon,density
+Indiranagar,12.9784,77.6408,0.78
+Koramangala,12.9352,77.6245,0.85"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; gap:8px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Execute Bulk Ingestion
+      </button>
+    </form>
+
+    <div class="hint-box">
+      <strong>Format Rules:</strong>
+      <ul style="margin:6px 0 0 18px; padding:0; color:var(--fog-300); font-size:12px;">
+        <li>First row must contain exact column headers matching the downloaded template.</li>
+        <li>Existing records matching the primary identifier (e.g. zone name) will be updated in-place without duplicating.</li>
+        <li>All operations are logged to the immutable system Audit Trail.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Ingestion Summary & Reference Status -->
+  <div class="card">
+    <div class="section-title">Current System Ingestion Metrics</div>
+    <div class="grid" style="grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:18px;">
+      <div class="fleet-tile">
+        <div class="fleet-val mono" style="color:var(--signal-info);">{{ total_zones }}</div>
+        <div class="fleet-lbl">Active Zones</div>
+      </div>
+      <div class="fleet-tile">
+        <div class="fleet-val mono" style="color:var(--alert-nominal);">{{ total_hospitals }}</div>
+        <div class="fleet-lbl">Hospitals</div>
+      </div>
+      <div class="fleet-tile">
+        <div class="fleet-val mono" style="color:var(--alert-warning);">{{ total_teams }}</div>
+        <div class="fleet-lbl">Rescue Units</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:16px;">Required CSV Schema Guidelines</div>
+    <div class="table-wrap">
+      <table class="data-table" style="font-size:12px;">
+        <thead>
+          <tr><th>Entity</th><th>Required Columns</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Zones</strong></td>
+            <td class="mono">name, lat, lon, density</td>
+          </tr>
+          <tr>
+            <td><strong>Hospitals</strong></td>
+            <td class="mono">hospital_name, location, lat, lon, beds_total, beds_available, doctors_available, ambulances_available, icu_available, contact</td>
+          </tr>
+          <tr>
+            <td><strong>Rescue Teams</strong></td>
+            <td class="mono">team_name, zone, lat, lon, vehicles, ambulances, fire_units, personnel, status</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    {% if import_results %}
+    <div class="section-title" style="margin-top:18px;">Last Import Outcome</div>
+    <div class="risk-card-lg {% if import_results.errors %}risk-medium{% else %}risk-low{% endif %}">
+      <div>
+        <div class="zone-name">{{ import_results.imported }} records processed successfully</div>
+        {% if import_results.errors %}
+        <div class="zone-detail" style="color:var(--alert-danger); margin-top:4px;">
+          <strong>Errors encountered ({{ import_results.errors|length }}):</strong>
+          <ul style="margin:4px 0 0 16px;">
+            {% for err in import_results.errors %}
+            <li>{{ err }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateSampleLink() {
+  const type = document.getElementById("entity_type").value;
+  const link = document.getElementById("sample-csv-link");
+  link.href = `/admin/import/sample/${type}`;
+}
+</script>
+{% endblock %}

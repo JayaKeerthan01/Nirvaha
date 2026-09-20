@@ -7,7 +7,7 @@ async function refreshUserStats() {
 
     const rows = document.getElementById("citizen-rows");
     if (!data.citizens.length) {
-      rows.innerHTML = `<tr><td colspan="6" class="empty-state">No community accounts yet.</td></tr>`;
+      rows.innerHTML = `<tr><td colspan="7" class="empty-state">No community accounts yet.</td></tr>`;
       return;
     }
     rows.innerHTML = "";
@@ -20,6 +20,7 @@ async function refreshUserStats() {
           <tr>
             <td>${c.name}</td>
             <td class="mono">${c.email}</td>
+            <td class="mono" style="color:var(--signal-info);">${c.phone || "—"}</td>
             <td>${c.zone || "—"}</td>
             <td>${verifiedBadge}</td>
             <td class="mono">${c.last_seen || "never"}</td>

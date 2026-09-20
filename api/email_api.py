@@ -49,7 +49,8 @@ def send_verification_email(to_email, name, code):
     try:
         with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10) as server:
             server.starttls()
-            server.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
+            pwd = str(Config.SMTP_PASSWORD).replace(" ", "").strip()
+            server.login(Config.SMTP_USER, pwd)
             server.sendmail(Config.SMTP_FROM, [to_email], msg.as_string())
         return True
     except Exception as exc:

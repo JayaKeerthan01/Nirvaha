@@ -6,13 +6,13 @@
 <body>
   <div class="login-wrap">
     <div class="login-card">
-      <h1>Operator sign in</h1>
+      <h1>Sub Admin sign in</h1>
       <div class="sub">Authenticate to access the live command dashboard.</div>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
-            <div class="flash-error">{{ message }}</div>
+            <div class="{{ 'flash-error' if category == 'error' else 'flash-success' }}">{{ message }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}
@@ -21,11 +21,14 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="field">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" required autofocus value="admin@disaster-response.local">
+          <input type="email" id="email" name="email" required autofocus value="{{ email if email is defined and email != '' else 'subadmin@disaster-response.local' }}">
         </div>
         <div class="field">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required value="admin123">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label for="password" style="margin-bottom:0;">Password</label>
+            <a href="{{ url_for('forgot_password') }}" style="font-size:12px; color:var(--signal-info);">Forgot password?</a>
+          </div>
+          <input type="password" id="password" name="password" required value="subadmin123" style="margin-top:6px;">
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Sign in</button>
       </form>
@@ -33,9 +36,9 @@
       <div class="hint-box">
         DEMO CREDENTIALS<br>
         Admin — email: admin@disaster-response.local · password: admin123<br>
-        Operator — email: operator@disaster-response.local · password: operator123<br>
+        Sub Admin — email: subadmin@disaster-response.local · password: subadmin123<br>
         Resident — email: resident@disaster-response.local · password: resident123<br>
-        <span style="color:var(--fog-400);">Admin can manage zones under /admin/zones; operator cannot; residents only see the community portal.</span>
+        <span style="color:var(--fog-400);">Admin can manage zones under /admin/zones; sub admin accounts cannot; residents only see the community portal.</span>
       </div>
       <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--fog-300);">
         Community member? <a href="{{ url_for('signup') }}" style="color:var(--signal-info);">Create a free account</a>

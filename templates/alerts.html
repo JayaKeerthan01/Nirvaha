@@ -1,22 +1,90 @@
 {% extends "base.html" %}
-{% block title %}Alerts{% endblock %}
-{% block page_title %}Alert Log{% endblock %}
-{% block page_subtitle %}COORDINATOR AGENT · AUTO-GENERATED WHEN RISK TURNS HIGH{% endblock %}
+{% block title %}Alerts &amp; Notifications{% endblock %}
+{% block page_title %}Alerts &amp; Notification System{% endblock %}
+{% block page_subtitle %}MULTI-CHANNEL BROADCAST · REAL-TIME PUSH, SMS &amp; EMAIL DISPATCH{% endblock %}
 
 {% block content %}
+<!-- Emergency Broadcast Box -->
 <div class="card" style="margin-bottom:18px;">
-  <div class="section-title">Recent alerts</div>
+  <div class="section-title">Emergency Multi-Channel Broadcast Console</div>
+  <div class="metric-label" style="margin-bottom:12px;">
+    Dispatch high-priority warnings directly to registered citizens' emails, mobile SMS numbers, and active command consoles.
+  </div>
+  <form id="page-broadcast-form">
+    <div class="grid grid-split" style="margin-bottom:12px;">
+      <div class="field">
+        <label for="p-bc-title" style="display:block; font-size:12px; color:var(--fog-400); margin-bottom:4px;">Alert Title</label>
+        <input type="text" id="p-bc-title" placeholder="e.g. Flash Flood Emergency Evacuation" required style="width:100%; background:var(--ink-850); border:1px solid var(--line-600); border-radius:6px; padding:8px 10px; color:var(--signal-100);">
+      </div>
+      <div class="field">
+        <label for="p-bc-zone" style="display:block; font-size:12px; color:var(--fog-400); margin-bottom:4px;">Target District / Zone</label>
+        <select id="p-bc-zone" style="width:100%; background:var(--ink-850); border:1px solid var(--line-600); border-radius:6px; padding:8px 10px; color:var(--signal-100);">
+          <option value="">City-Wide (All Monitored Districts)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label style="display:block; font-size:12px; color:var(--fog-400); margin-bottom:6px;">Delivery Channels</label>
+      <div style="display:flex; gap:20px; font-size:13px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="p-bc-push" checked> In-App &amp; Push Stream</label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="p-bc-sms" checked> SMS Alert (Twilio / Log)</label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="p-bc-email" checked> Email Alert (SMTP / Log)</label>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label for="p-bc-msg" style="display:block; font-size:12px; color:var(--fog-400); margin-bottom:4px;">Emergency Message Body</label>
+      <textarea id="p-bc-msg" rows="2" placeholder="Urgent evacuation routes, shelter locations, and emergency instructions..." required style="width:100%; background:var(--ink-850); border:1px solid var(--line-600); border-radius:6px; padding:8px 10px; color:var(--signal-100); font-family:inherit;"></textarea>
+    </div>
+    <div style="display:flex; justify-content:flex-end;">
+      <button class="btn btn-primary" type="submit" id="p-bc-submit-btn">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 4.41-2.87 8.16-6.84 9.48l-.66-1.88C17.78 18.42 20 15.46 20 12a8 8 0 1 0-16 0c0 3.46 2.22 6.42 5.5 7.6l-.66 1.88C4.87 20.16 2 16.41 2 12A10 10 0 0 1 12 2z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+        Dispatch Broadcast
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Multi-Channel Notification Transmissions (SMS & Email Logs) -->
+<div class="card" style="margin-bottom:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="section-title" style="margin-bottom:0;">SMS &amp; Email Outbound Transmission Log</div>
+    <span class="badge badge-info" id="notif-count-badge">0 logged</span>
+  </div>
+  <div class="metric-label" style="margin-bottom:10px;">
+    Live log of automated citizen warning emails, emergency SMS notifications, and system pushes.
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Channel</th>
+          <th>Recipient</th>
+          <th>District</th>
+          <th>Subject / Message</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="notification-rows">
+        <tr><td colspan="6" class="empty-state">Loading notification history…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Recent Alerts -->
+<div class="card" style="margin-bottom:18px;">
+  <div class="section-title">System Alert History</div>
   <div id="alerts-list">
     <div class="empty-state">Loading…</div>
   </div>
 </div>
 
+<!-- Disaster Event History -->
 <div class="card">
   <div class="section-title">Disaster event log</div>
   <div class="metric-label" style="margin-bottom:12px;">
-    Every Weather Agent assessment, not just the ones that crossed into High
-    risk — this is the <span class="mono">disasters</span> table, which
-    previously existed in the schema but nothing ever wrote to it.
+    Continuous Weather Agent assessments and machine learning disaster predictions.
   </div>
   <table>
     <thead><tr><th>Time</th><th>Zone</th><th>Type</th><th>Severity</th><th>Probability</th></tr></thead>

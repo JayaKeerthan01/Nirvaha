@@ -163,16 +163,24 @@ ul { list-style: none; margin: 0; padding: 0; }
 .user-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
   color: var(--fog-300);
   padding: 8px 10px;
+  flex-wrap: nowrap;
+}
+
+.user-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .user-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--alert-nominal);
   box-shadow: 0 0 0 3px var(--alert-nominal-dim);
+  flex-shrink: 0;
 }
 
 .logout-link {
@@ -816,29 +824,1005 @@ body.role-citizen {
     radial-gradient(circle at 85% 100%, rgba(45, 212, 191, 0.06), transparent 40%);
 }
 
-/* ---------------------------------- map polish ---------------------------
-   Markers are now updated in place (see renderMap in dashboard.js) instead
-   of cleared and recreated every poll, so this transition is what actually
-   turns a risk-level change into a smooth color/size fade instead of a
-   jarring snap. Leaflet renders circleMarkers as plain SVG <path>, which is
-   what .leaflet-interactive targets. */
-.leaflet-interactive {
-  transition: fill 0.6s ease, stroke 0.6s ease, r 0.4s ease;
+.app-shell {
+  background: var(--page-bg);
 }
 
-@keyframes risk-pulse-high {
-  0%, 100% { filter: drop-shadow(0 0 0px rgba(255, 84, 112, 0)); }
-  50% { filter: drop-shadow(0 0 6px rgba(255, 84, 112, 0.85)); }
-}
-.risk-pulse-high {
-  animation: risk-pulse-high 1.8s ease-in-out infinite;
+.sidebar {
+  background: var(--sidebar-bg);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.03);
 }
 
-.leaflet-container { background: var(--ink-950) !important; }
-.leaflet-popup-content-wrapper, .leaflet-popup-tip {
-  background: var(--ink-850);
+.brand-mark {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 8px 22px var(--brand-glow);
+}
+
+.main {
+  background: var(--page-bg);
+}
+
+.topbar {
+  background: rgba(11, 18, 32, 0.42);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.nav-link:hover, .nav-link.active {
+  background: var(--panel-accent);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+/* ==========================================================================
+   ADVANCED DASHBOARD & COMMAND MAP WIDGETS
+   ========================================================================== */
+
+/* 1. Emergency Live Ticker */
+.emergency-ticker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(22, 33, 58, 0.85);
+  border: 1px solid rgba(94, 168, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+}
+
+.ticker-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--alert-critical-dim);
+  border: 1px solid rgba(255, 84, 112, 0.4);
+  color: var(--alert-critical);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 9px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ticker-content {
+  flex: 1;
+  font-size: 13.5px;
   color: var(--signal-100);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.leaflet-popup-content { font-size: 13px; line-height: 1.5; font-family: var(--font-body); }
-.leaflet-popup-content b { font-family: var(--font-display); }
+
+.ticker-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fog-400);
+  white-space: nowrap;
+}
+
+/* 2. Resource Gauges & Progress Meters */
+.resource-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gauge-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gauge-label-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.gauge-name {
+  color: var(--fog-300);
+  font-weight: 500;
+}
+
+.gauge-stat {
+  font-size: 12px;
+  color: var(--signal-100);
+  font-weight: 600;
+}
+
+.meter-bar-track {
+  width: 100%;
+  height: 8px;
+  background: var(--ink-850);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--line-700);
+}
+
+.meter-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--alert-nominal), var(--signal-info));
+  border-radius: 999px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.meter-bar-fill.meter-icu {
+  background: linear-gradient(90deg, #38BDF8, #818CF8);
+}
+
+.meter-bar-fill.meter-doc {
+  background: linear-gradient(90deg, #34D399, #10B981);
+}
+
+.meter-bar-fill.meter-rescue {
+  background: linear-gradient(90deg, #F59E0B, #EF4444);
+}
+
+/* Fleet Metrics Grid */
+.fleet-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.fleet-tile {
+  background: var(--ink-850);
+  border: 1px solid var(--line-700);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.fleet-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--signal-100);
+  line-height: 1.1;
+}
+
+.fleet-lbl {
+  font-size: 10px;
+  color: var(--fog-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+/* 3. Unified Command Map Styles */
+.map-command-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--ink-900);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-700);
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--signal-100);
+  margin-right: 6px;
+}
+
+.layer-pill-group, .basemap-pill-group {
+  display: flex;
+  background: var(--ink-850);
+  border: 1px solid var(--line-700);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.layer-pill, .basemap-pill {
+  background: transparent;
+  border: none;
+  color: var(--fog-400);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.layer-pill:hover, .basemap-pill:hover {
+  color: var(--signal-100);
+}
+
+.layer-pill.active {
+  background: rgba(94, 168, 255, 0.2);
+  color: var(--signal-info);
+}
+
+.basemap-pill.active {
+  background: var(--line-600);
+  color: var(--signal-100);
+}
+
+.map-legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: var(--ink-900);
+  padding: 8px 14px;
+  border-top: 1px solid var(--line-700);
+  font-size: 11px;
+  color: var(--fog-300);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-line {
+  width: 14px;
+  height: 0;
+  border-bottom: 2px dashed;
+  display: inline-block;
+}
+
+/* Custom Map Pins */
+.custom-map-pin {
+  background: transparent;
+  border: none;
+}
+
+.pin-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  font-size: 13px;
+  border: 2px solid white;
+}
+
+.pin-hosp {
+  background: #1E293B;
+  border-color: #38BDF8;
+}
+
+.pin-count {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #0284C7;
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--ink-950);
+}
+
+.pin-team.pin-ready {
+  background: #1E293B;
+  border-color: #34D399;
+}
+
+.pin-team.pin-deployed {
+  background: #78350F;
+  border-color: #F59E0B;
+}
+
+.pin-iot {
+  background: #0E7490;
+  border-color: #22D3EE;
+}
+
+.pin-iot.pin-crit {
+  background: #991B1B;
+  border-color: #EF4444;
+}
+
+.pin-social {
+  background: #5B21B6;
+  border-color: #A78BFA;
+}
+
+.pin-social.pin-twitter {
+  background: #000000;
+  border-color: #FFFFFF;
+}
+
+.pin-social.pin-instagram {
+  background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF);
+  border-color: #F43F5E;
+}
+
+.pin-social.pin-facebook {
+  background: #1877F2;
+  border-color: #60A5FA;
+}
+
+/* Social Intelligence Filters & Cards */
+.social-filter-btn {
+  background: var(--ink-850);
+  border: 1px solid var(--line-700);
+  color: var(--fog-300);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.social-filter-btn:hover {
+  background: var(--ink-800);
+  color: var(--signal-100);
+  border-color: var(--line-600);
+}
+
+.social-filter-btn.active {
+  background: var(--signal-info-dim);
+  color: var(--signal-info);
+  border-color: var(--signal-info);
+}
+
+.social-post-card {
+  background: var(--ink-900);
+  border: 1px solid var(--line-700);
+  border-radius: 8px;
+  padding: 12px 14px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.social-post-card:hover {
+  border-color: var(--line-600);
+  transform: translateY(-1px);
+}
+
+.social-platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-platform-twitter {
+  background: #000000;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.badge-platform-instagram {
+  background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF);
+  color: #FFFFFF;
+}
+
+.badge-platform-facebook {
+  background: #1877F2;
+  color: #FFFFFF;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(45, 212, 191, 0.15);
+  color: #2DD4BF;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(45, 212, 191, 0.3);
+}
+
+/* Alert Beacon */
+.alert-beacon {
+  position: relative;
+}
+
+.pin-beacon-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 84, 112, 0.4);
+  transform: translate(-50%, -50%);
+  animation: beacon-ripple 1.6s infinite ease-out;
+}
+
+.pin-beacon-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #DC2626;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  border: 2px solid white;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+}
+
+@keyframes beacon-ripple {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+}
+
+/* Map Popups */
+.map-popup-card {
+  font-family: var(--font-body);
+  color: var(--signal-100);
+  min-width: 180px;
+}
+
+.popup-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.popup-badge {
+  display: inline-block;
+  font-size: 10px;
+  margin-bottom: 6px;
+}
+
+.popup-meta {
+  font-size: 11.5px;
+  color: var(--fog-300);
+  margin-bottom: 3px;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--ink-900) !important;
+  color: var(--signal-100) !important;
+  border: 1px solid var(--line-600) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--ink-900) !important;
+}
+
+/* 4. Auto-Assignment Matrix & Controls */
+.auto-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: var(--ink-850);
+  border: 1px solid var(--line-700);
+  border-radius: 20px;
+  padding: 4px 10px;
+  user-select: none;
+}
+
+.auto-toggle-label input {
+  display: none;
+}
+
+.auto-toggle-slider {
+  position: relative;
+  width: 28px;
+  height: 15px;
+  background: var(--line-600);
+  border-radius: 20px;
+  transition: background 0.2s ease;
+}
+
+.auto-toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 1.5px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s ease;
+}
+
+.auto-toggle-label input:checked + .auto-toggle-slider {
+  background: var(--alert-nominal);
+}
+
+.auto-toggle-label input:checked + .auto-toggle-slider::after {
+  transform: translateX(12px);
+}
+
+.auto-toggle-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--signal-100);
+}
+
+/* Topbar Icon Buttons */
+.icon-toggle-btn {
+  background: var(--ink-850);
+  border: 1px solid var(--line-700);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--signal-100);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.icon-toggle-btn:hover {
+  background: var(--ink-800);
+  border-color: var(--signal-info);
+}
+
+/* 5. Real-Time Toast Notifications */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: 380px;
+}
+
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--ink-900);
+  border: 1px solid var(--line-600);
+  border-left: 4px solid var(--signal-info);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  animation: toast-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.toast-item.toast-high {
+  border-left-color: var(--alert-critical);
+  background: rgba(26, 20, 32, 0.95);
+}
+
+.toast-item.toast-medium {
+  border-left-color: var(--alert-warning);
+  background: rgba(28, 26, 20, 0.95);
+}
+
+.toast-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast-body {
+  flex: 1;
+}
+
+.toast-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--signal-100);
+  margin-bottom: 3px;
+}
+
+.toast-msg {
+  font-size: 12px;
+  color: var(--fog-300);
+  line-height: 1.4;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--fog-400);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.toast-close:hover {
+  color: var(--signal-100);
+}
+
+.toast-hiding {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 6. Emergency Broadcast Modal */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-card {
+  background: var(--ink-900);
+  border: 1px solid var(--line-600);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-700);
+  background: var(--ink-850);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--signal-100);
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--fog-400);
+  cursor: pointer;
+  padding: 0;
+}
+
+.modal-close-btn:hover {
+  color: var(--signal-100);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* Responsive Table Wrap */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-700);
+  text-align: left;
+}
+
+.data-table th {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fog-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   CITIZEN EMERGENCY ALERT BANNER
+   ========================================================================== */
+.citizen-alert-banner {
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: banner-glow 2s infinite ease-in-out;
+}
+
+.banner-high {
+  background: linear-gradient(135deg, rgba(255, 84, 112, 0.25), rgba(255, 84, 112, 0.1));
+  border: 1px solid var(--alert-critical);
+}
+
+.banner-warning {
+  background: linear-gradient(135deg, rgba(255, 178, 56, 0.25), rgba(255, 178, 56, 0.1));
+  border: 1px solid var(--alert-warning);
+}
+
+.banner-icon-pulse {
+  font-size: 28px;
+  animation: pulse-scale 1.2s infinite ease-in-out;
+}
+
+.banner-body {
+  flex: 1;
+}
+
+.banner-headline {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--signal-100);
+  margin-bottom: 3px;
+}
+
+.banner-sub {
+  font-size: 13px;
+  color: var(--fog-300);
+  line-height: 1.4;
+}
+
+.banner-action-btn {
+  white-space: nowrap;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+@keyframes banner-glow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(255, 84, 112, 0.2); }
+  50% { box-shadow: 0 4px 30px rgba(255, 84, 112, 0.4); }
+}
+
+@keyframes pulse-scale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.risk-home-highlight {
+  border-left: 4px solid var(--signal-info) !important;
+}
+
+/* ==========================================================================
+   HOSPITAL CAPACITY CHART & COMPARISON
+   ========================================================================== */
+.hospital-capacity-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.hosp-cap-card {
+  background: var(--ink-850);
+  border: 1px solid var(--line-700);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hosp-cap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hosp-cap-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--signal-100);
+}
+
+.hosp-cap-loc {
+  font-size: 11.5px;
+  color: var(--fog-400);
+  margin-top: 2px;
+}
+
+.hosp-cap-bar-track {
+  height: 8px;
+  background: var(--ink-950);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hosp-cap-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hosp-cap-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--fog-300);
+}
+
+/* ==========================================================================
+   DEPLOYMENT STATUS TIMELINE
+   ========================================================================== */
+.deployment-timeline-wrap {
+  position: relative;
+  padding-left: 24px;
+}
+
+.deployment-timeline-wrap::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 8px;
+  width: 2px;
+  background: var(--line-700);
+}
+
+.timeline-entry {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.timeline-entry:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--signal-info);
+  border: 2px solid var(--ink-900);
+}
+
+.timeline-dot.dot-active {
+  background: var(--alert-nominal);
+  box-shadow: 0 0 8px var(--alert-nominal);
+}
+
+.timeline-dot.dot-recalled {
+  background: var(--fog-400);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.timeline-title {
+  font-weight: 600;
+  color: var(--signal-100);
+}
+
+.timeline-time {
+  font-size: 11.5px;
+  color: var(--fog-400);
+}
+
+.timeline-detail {
+  font-size: 12px;
+  color: var(--fog-300);
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   PRINT / PDF EXPORT STYLES
+   ========================================================================== */
+@media print {
+  body {
+    background: #FFF !important;
+    color: #000 !important;
+  }
+
+  .sidebar,
+  .topbar,
+  .no-print,
+  .reports-header-actions,
+  .broadcast-btn,
+  .icon-toggle-btn,
+  #live-clock {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block !important;
+  }
+
+  .main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .card {
+    background: #FFF !important;
+    border: 1px solid #CCC !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin-bottom: 16px !important;
+  }
+
+  .report-print-header {
+    display: block !important;
+  }
+
+  .data-table th, .data-table td {
+    color: #000 !important;
+    border-bottom: 1px solid #DDD !important;
+  }
+
+  .badge {
+    border: 1px solid #999 !important;
+    color: #000 !important;
+    background: #EEE !important;
+  }
+}
+
+

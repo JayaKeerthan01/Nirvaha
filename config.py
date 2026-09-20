@@ -9,6 +9,13 @@ import os
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+# Automatically load environment variables from .env file if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(BASE_DIR, ".env"))
+except ImportError:
+    pass
+
 DEFAULT_SECRET_KEY = "dev-secret-key-change-in-production"
 
 
@@ -59,15 +66,12 @@ class Config:
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
     ANTHROPIC_CHAT_MODEL = os.environ.get("ANTHROPIC_CHAT_MODEL", "claude-sonnet-4-6")
 
-    # Email verification for citizen signup. Leave SMTP_* blank to run in
-    # SIMULATION MODE — the verification code is shown directly on the
-    # /verify-email page instead of actually being emailed, so signup
-    # still works end-to-end with zero external services configured.
+    # Email verification for citizen signup and disaster alert delivery.
     SMTP_HOST = os.environ.get("SMTP_HOST", "")
     SMTP_PORT = int(os.environ.get("SMTP_PORT", "587") or 587)
     SMTP_USER = os.environ.get("SMTP_USER", "")
-    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
-    SMTP_FROM = os.environ.get("SMTP_FROM", "")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "")
+    SMTP_FROM = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", ""))
     VERIFICATION_CODE_EXPIRY_MINUTES = 15
 
     # A citizen counts as "currently active" on the admin dashboard if
@@ -98,3 +102,20 @@ class Config:
     # agents/hospital_agent.py::reserve_for_deployment). A simplification —
     # a real system would size this from an actual casualty estimate.
     BEDS_RESERVED_PER_DEPLOYMENT = 5
+
+    # SMS / Emergency Alert configuration.
+    # 1. Fast2SMS (Recommended for Indian mobile numbers - free trial credits, no DLT fee)
+    FAST2SMS_API_KEY = os.environ.get("FAST2SMS_API_KEY", "")
+
+    # 2. Twilio (International / Virtual number delivery)
+    TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
+    TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")
+
+    # Autonomous rescue & hospital auto-dispatch toggle default
+    AUTO_DISPATCH_DEFAULT = os.environ.get("AUTO_DISPATCH_ENABLED", "0") == "1"
+
+    # Security & Session Hardening
+    SESSION_IDLE_TIMEOUT_MINUTES = 30
+    PASSWORD_RESET_EXPIRY_MINUTES = 15
+

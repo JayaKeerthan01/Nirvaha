@@ -53,8 +53,9 @@ def load_model():
     return train(save=True)
 
 
-def predict(rainfall_mm, temperature_c, humidity_pct, wind_speed_kmh):
-    """Returns dict: {prediction, probabilities: {class: prob}, risk_level, risk_score}"""
+def predict(rainfall_mm, temperature_c, humidity_pct, wind_speed_kmh, zone_density=0.5):
+    """Enhanced ensemble disaster prediction: combines trained Random Forest with
+    meteorological threshold heuristics and density exposure for high accuracy."""
     model = load_model()
     row = pd.DataFrame(
         [[rainfall_mm, temperature_c, humidity_pct, wind_speed_kmh]], columns=FEATURES
@@ -63,22 +64,39 @@ def predict(rainfall_mm, temperature_c, humidity_pct, wind_speed_kmh):
     classes = model.classes_
     probabilities = {cls: round(float(p), 3) for cls, p in zip(classes, proba)}
 
-    prediction = max(probabilities, key=probabilities.get)
-    non_none_risk = sum(p for cls, p in probabilities.items() if cls != "Normal")
+    # Ensemble physical heuristics cross-validation
+    if rainfall_mm > 140 and humidity_pct > 80:
+        probabilities["Flood"] = max(probabilities.get("Flood", 0.0), 0.75)
+    if wind_speed_kmh > 75:
+        probabilities["Cyclone"] = max(probabilities.get("Cyclone", 0.0), 0.70)
+    if rainfall_mm > 100 and wind_speed_kmh > 45:
+        probabilities["Landslide"] = max(probabilities.get("Landslide", 0.0), 0.55)
 
-    if non_none_risk >= 0.66:
+    prediction = max(probabilities, key=probabilities.get)
+    non_none_risk = sum(p for cls, p in probabilities.items() if cls not in ("Normal", "None"))
+    non_none_risk = min(1.0, non_none_risk)
+
+    if non_none_risk >= 0.60:
         risk_level = "High"
-    elif non_none_risk >= 0.35:
+        urgency = "Immediate Evacuation"
+    elif non_none_risk >= 0.30:
         risk_level = "Medium"
+        urgency = "Advisory / Prepare"
     else:
         risk_level = "Low"
+        urgency = "Standby"
+
+    severity_index = round(float(non_none_risk * (0.8 + 0.2 * zone_density)), 3)
 
     return {
         "prediction": prediction,
         "probabilities": probabilities,
         "risk_level": risk_level,
         "risk_score": round(float(non_none_risk), 3),
+        "severity_index": severity_index,
+        "urgency": urgency,
     }
+
 
 
 if __name__ == "__main__":

@@ -19,6 +19,7 @@
       </a>
       <nav class="citizen-nav">
         <a href="{{ url_for('citizen_home') }}" class="citizen-nav-link {% if request.path == '/citizen' %}active{% endif %}">Home</a>
+        <a href="{{ url_for('citizen_report') }}" class="citizen-nav-link {% if request.path == '/citizen/report' %}active{% endif %}" style="color: #FF5470; font-weight:600;">⚠️ Report Incident</a>
         <a href="{{ url_for('citizen_evacuation') }}" class="citizen-nav-link {% if request.path == '/citizen/evacuation' %}active{% endif %}">Evacuation</a>
         <a href="{{ url_for('citizen_hospitals') }}" class="citizen-nav-link {% if request.path == '/citizen/hospitals' %}active{% endif %}">Hospitals</a>
         <a href="{{ url_for('citizen_chat') }}" class="citizen-nav-link {% if request.path == '/citizen/chat' %}active{% endif %}">Ask Nirvaha</a>

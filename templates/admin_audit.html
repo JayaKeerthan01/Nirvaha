@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}System Audit Logs{% endblock %}
+{% block page_title %}Security &amp; Operational Audit Trail{% endblock %}
+{% block page_subtitle %}ADMIN ONLY · IMMUTABLE LOG OF ALL OPERATIONAL ACTIONS, ZONE EDITS, AND DISPATCHES{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:18px;">
+  <!-- Filter Controls Form -->
+  <form method="GET" action="{{ url_for('admin_audit') }}" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+    <div class="field" style="margin-bottom:0; flex:1; min-width:180px;">
+      <label for="action-filter">Filter by Action</label>
+      <select id="action-filter" name="action" class="select-lg">
+        <option value="">All Actions ({{ total_count }})</option>
+        <option value="LOGIN_SUCCESS" {% if selected_action == 'LOGIN_SUCCESS' %}selected{% endif %}>User Sign In</option>
+        <option value="LOGIN_FAILED" {% if selected_action == 'LOGIN_FAILED' %}selected{% endif %}>Failed Sign In Attempt</option>
+        <option value="LOGOUT" {% if selected_action == 'LOGOUT' %}selected{% endif %}>User Sign Out</option>
+        <option value="ADD_ZONE" {% if selected_action == 'ADD_ZONE' %}selected{% endif %}>Add Monitored Zone</option>
+        <option value="DELETE_ZONE" {% if selected_action == 'DELETE_ZONE' %}selected{% endif %}>Delete Monitored Zone</option>
+        <option value="DEPLOY_TEAM" {% if selected_action == 'DEPLOY_TEAM' %}selected{% endif %}>Deploy Rescue Unit</option>
+        <option value="RECALL_TEAM" {% if selected_action == 'RECALL_TEAM' %}selected{% endif %}>Recall Rescue Unit</option>
+        <option value="BROADCAST_EMERGENCY" {% if selected_action == 'BROADCAST_EMERGENCY' %}selected{% endif %}>Emergency Broadcast</option>
+        <option value="BULK_IMPORT" {% if selected_action == 'BULK_IMPORT' %}selected{% endif %}>Bulk CSV Ingestion</option>
+        <option value="PASSWORD_RESET_REQUEST" {% if selected_action == 'PASSWORD_RESET_REQUEST' %}selected{% endif %}>Password Reset Requested</option>
+        <option value="PASSWORD_RESET_COMPLETE" {% if selected_action == 'PASSWORD_RESET_COMPLETE' %}selected{% endif %}>Password Reset Completed</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:0; flex:1; min-width:140px;">
+      <label for="role-filter">Filter by Role</label>
+      <select id="role-filter" name="role" class="select-lg">
+        <option value="">All Roles</option>
+        <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Admin</option>
+        <option value="operator" {% if selected_role == 'operator' %}selected{% endif %}>Sub Admin</option>
+        <option value="citizen" {% if selected_role == 'citizen' %}selected{% endif %}>Citizen</option>
+      </select>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="submit" class="btn btn-primary" style="height:38px;">Apply Filters</button>
+      <a href="{{ url_for('admin_audit') }}" class="btn btn-ghost" style="height:38px; display:inline-flex; align-items:center;">Reset</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+    <div class="section-title" style="margin-bottom:0;">Audit Event Log (Showing {{ logs|length }} entries)</div>
+    <span class="badge badge-info mono">Storage: SQLite WAL + Index</span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Timestamp (UTC)</th>
+          <th>Actor / User</th>
+          <th>Role</th>
+          <th>Action Type</th>
+          <th>Target</th>
+          <th>Details &amp; Metadata</th>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="mono" style="font-size:12px; white-space:nowrap;">{{ log.created_at }}</td>
+          <td><strong>{{ log.user_name or "System / Anonymous" }}</strong></td>
+          <td>
+            {% if log.role == 'admin' %}<span class="badge badge-high">Admin</span>
+            {% elif log.role == 'operator' %}<span class="badge badge-medium">Sub Admin</span>
+            {% elif log.role == 'citizen' %}<span class="badge badge-info">Citizen</span>
+            {% else %}<span class="badge badge-ghost">—</span>{% endif %}
+          </td>
+          <td>
+            <span class="badge mono {% if 'DELETE' in log.action or 'FAILED' in log.action %}badge-high{% elif 'DEPLOY' in log.action or 'BROADCAST' in log.action %}badge-medium{% else %}badge-available{% endif %}">
+              {{ log.action }}
+            </span>
+          </td>
+          <td class="mono" style="font-size:12px;">{{ log.target_type or '—' }}: {{ log.target_id or '—' }}</td>
+          <td style="font-size:12.5px; max-width:320px; overflow:hidden; text-overflow:ellipsis;">{{ log.details or '—' }}</td>
+          <td class="mono" style="font-size:12px;">{{ log.ip_address or '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not logs %}
+        <tr>
+          <td colspan="7" class="empty-state">No audit records found matching the specified filters.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -62,6 +62,8 @@ class WeatherAgent:
     def _maybe_alert(self, zone_name, assessment):
         prev = get_zone_state(zone_name)
         current = assessment["risk_level"]
+        set_zone_state(zone_name, current)
+
         if current == "High" and prev != "High":
             log_alert(
                 title=f"{assessment['prediction']} risk elevated to HIGH",
@@ -72,7 +74,27 @@ class WeatherAgent:
                 severity="High",
                 zone=zone_name,
             )
-        set_zone_state(zone_name, current)
+            # 1. Multi-channel real-time notifications (Push, Email, SMS)
+            try:
+                from api.notification_service import notification_service
+                notification_service.dispatch_high_risk_alert(zone_name, assessment)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("Failed to dispatch alert notifications: %s", e)
+
+            # 2. Autonomous rescue & hospital auto-dispatch if enabled
+            try:
+                from database.db import is_auto_dispatch_enabled
+                if is_auto_dispatch_enabled():
+                    from agents.rescue_agent import rescue_agent
+                    rescue_agent.deploy(
+                        zone_name,
+                        deployed_by="Autonomous Dispatch",
+                        weather_by_zone={zone_name: assessment},
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("Failed to execute autonomous assignment: %s", e)
 
     def assess_all_zones(self):
         return [self.assess_zone(z) for z in get_zones()]

@@ -113,9 +113,9 @@ Admin (full access, incl. /admin/zones):
   email:    admin@disaster-response.local
   password: admin123
 
-Operator (dashboard + deploy/recall, no zone management):
-  email:    operator@disaster-response.local
-  password: operator123
+Sub Admin (dashboard + deploy/recall, no zone management):
+  email:    subadmin@disaster-response.local
+  password: subadmin123
 
 Resident (public citizen portal only, /citizen):
   email:    resident@disaster-response.local

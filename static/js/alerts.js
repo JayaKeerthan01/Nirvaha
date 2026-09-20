@@ -5,6 +5,59 @@ function severityIconColor(sev) {
   return { Low: "#2DD4BF", Medium: "#FFB238", High: "#FF5470" }[sev] || "#5EA8FF";
 }
 
+function channelBadge(ch) {
+  const map = {
+    email: '<span class="badge badge-info" style="font-size:11px;">EMAIL</span>',
+    sms: '<span class="badge badge-medium" style="font-size:11px;">SMS</span>',
+    push: '<span class="badge badge-available" style="font-size:11px;">PUSH</span>',
+  };
+  return map[ch] || `<span class="badge badge-info">${ch}</span>`;
+}
+
+function deliveryStatusBadge(status) {
+  if (status === "sent") return '<span class="badge badge-available">Sent</span>';
+  if (status === "simulated") return '<span class="badge badge-info" title="Zero-config simulated transmission recorded">Simulated</span>';
+  return '<span class="badge badge-high">Failed</span>';
+}
+
+async function renderNotifications() {
+  const tbody = document.getElementById("notification-rows");
+  const countBadge = document.getElementById("notif-count-badge");
+  if (!tbody) return;
+
+  try {
+    const data = await getJSON("/api/notifications");
+    const history = data.history || [];
+    if (countBadge) countBadge.textContent = `${history.length} logged`;
+
+    if (!history.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No outbound SMS or Email alerts logged yet. Alerts trigger automatically when an area reaches High risk.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = "";
+    history.forEach((n) => {
+      tbody.appendChild(
+        el(`
+          <tr>
+            <td class="mono" style="font-size:11.5px;">${fmtTime(n.created_at)}</td>
+            <td>${channelBadge(n.channel)}</td>
+            <td class="mono" style="font-size:12px; font-weight:600;">${n.recipient}</td>
+            <td>${n.zone || '<span class="zone-meta">City-wide</span>'}</td>
+            <td>
+              <div style="font-weight:600; font-size:12.5px;">${n.title}</div>
+              <div class="zone-meta" style="max-width:460px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${n.message}</div>
+            </td>
+            <td>${deliveryStatusBadge(n.status)}</td>
+          </tr>
+        `)
+      );
+    });
+  } catch (e) {
+    console.error("Failed to load notifications:", e);
+  }
+}
+
 async function renderAlerts() {
   const container = document.getElementById("alerts-list");
   try {
@@ -34,13 +87,6 @@ async function renderAlerts() {
   }
 }
 
-renderAlerts();
-setInterval(renderAlerts, POLL_INTERVAL_MS);
-
-function severityRowClass(sev) {
-  return riskClass(sev);
-}
-
 async function renderIncidents() {
   const rows = document.getElementById("incident-rows");
   try {
@@ -57,7 +103,7 @@ async function renderIncidents() {
             <td class="mono">${fmtTime(i.date)}</td>
             <td>${i.location}</td>
             <td>${i.disaster_type}</td>
-            <td><span class="badge ${severityRowClass(i.severity)}">${i.severity}</span></td>
+            <td><span class="badge ${riskClass(i.severity)}">${i.severity}</span></td>
             <td class="mono">${(i.probability * 100).toFixed(1)}%</td>
           </tr>
         `)
@@ -68,5 +114,66 @@ async function renderIncidents() {
   }
 }
 
-renderIncidents();
-setInterval(renderIncidents, POLL_INTERVAL_MS);
+async function initPageBroadcast() {
+  const form = document.getElementById("page-broadcast-form");
+  const zoneSelect = document.getElementById("p-bc-zone");
+  const submitBtn = document.getElementById("p-bc-submit-btn");
+
+  // Populate zones dropdown
+  try {
+    const zones = await getJSON("/api/zones");
+    if (zoneSelect) {
+      zoneSelect.innerHTML = `<option value="">City-Wide (All Monitored Districts)</option>`;
+      zones.forEach((z) => {
+        zoneSelect.innerHTML += `<option value="${z.name}">${z.name}</option>`;
+      });
+    }
+  } catch (e) {
+    console.warn("Could not load zones:", e);
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = (document.getElementById("p-bc-title").value || "").trim();
+      const zone = document.getElementById("p-bc-zone").value || null;
+      const message = (document.getElementById("p-bc-msg").value || "").trim();
+
+      const channels = [];
+      if (document.getElementById("p-bc-push").checked) channels.push("push");
+      if (document.getElementById("p-bc-sms").checked) channels.push("sms");
+      if (document.getElementById("p-bc-email").checked) channels.push("email");
+
+      if (!title || !message) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Broadcasting…";
+
+      try {
+        await postJSON("/api/notifications/broadcast", { title, zone, message, channels });
+        alert(`Broadcast successfully dispatched across ${channels.join(", ").toUpperCase()}`);
+        document.getElementById("p-bc-title").value = "";
+        document.getElementById("p-bc-msg").value = "";
+        renderNotifications();
+        renderAlerts();
+      } catch (err) {
+        alert("Broadcast dispatch failed: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Dispatch Broadcast";
+      }
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderNotifications();
+  renderAlerts();
+  renderIncidents();
+  initPageBroadcast();
+  setInterval(() => {
+    renderNotifications();
+    renderAlerts();
+    renderIncidents();
+  }, POLL_INTERVAL_MS);
+});

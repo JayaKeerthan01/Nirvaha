@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Operational Reports{% endblock %}
+{% block page_title %}Operational Intelligence &amp; Reports{% endblock %}
+{% block page_subtitle %}OFFICIAL COMMAND SUMMARY · DAILY &amp; MONTHLY DRILLDOWN · AUDITABLE ARCHIVE{% endblock %}
+
+{% block content %}
+<div class="reports-header-actions no-print" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+  <!-- Period Selector Tabs -->
+  <div class="layer-pill-group">
+    <a href="{{ url_for('reports', period='daily') }}" class="layer-pill {% if period == 'daily' %}active{% endif %}">Daily Operations Report</a>
+    <a href="{{ url_for('reports', period='monthly') }}" class="layer-pill {% if period == 'monthly' %}active{% endif %}">Monthly Command Summary</a>
+  </div>
+
+  <!-- Export Actions -->
+  <div style="display:flex; gap:8px;">
+    <a href="{{ url_for('reports_export_incidents') }}" class="btn btn-ghost" style="gap:6px;">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Export Incidents (CSV)
+    </a>
+    <a href="{{ url_for('reports_export_deployments') }}" class="btn btn-ghost" style="gap:6px;">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Export Deployments (CSV)
+    </a>
+    <button onclick="window.print()" class="btn btn-primary" style="gap:6px;">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / Save PDF
+    </button>
+  </div>
+</div>
+
+<!-- Print Report Header (Visible only when printing) -->
+<div class="print-only report-print-header" style="display:none; margin-bottom:20px; border-bottom:2px solid #000; padding-bottom:10px;">
+  <h1 style="margin:0; font-size:22px; color:#000;">Nirvaha Disaster Response System — Operations Report</h1>
+  <div style="font-size:13px; color:#333; margin-top:4px;">
+    Period: <strong>{{ period|upper }}</strong> &bull; Generated: <strong>{{ now_str }}</strong> &bull; Compiled by: <strong>{{ current_user or 'Duty Officer' }}</strong>
+  </div>
+</div>
+
+<!-- Summary KPI Grid -->
+<div class="grid grid-4" style="margin-bottom:18px;">
+  <div class="card">
+    <div class="metric-label">TOTAL DISASTER EVENTS</div>
+    <div class="metric-value" style="color:var(--signal-info);">{{ stats.total_incidents }}</div>
+    <div class="zone-meta">{{ 'Logged today' if period == 'daily' else 'Logged past 30 days' }}</div>
+  </div>
+
+  <div class="card">
+    <div class="metric-label">CRITICAL / HIGH SEVERITY</div>
+    <div class="metric-value" style="color:var(--alert-danger);">{{ stats.high_severity_count }}</div>
+    <div class="zone-meta">Immediate response required</div>
+  </div>
+
+  <div class="card">
+    <div class="metric-label">DEPLOYMENTS EXECUTED</div>
+    <div class="metric-value" style="color:var(--alert-warning);">{{ stats.total_deployments }}</div>
+    <div class="zone-meta">{{ stats.active_deployments }} units currently active in field</div>
+  </div>
+
+  <div class="card">
+    <div class="metric-label">EMERGENCY NOTIFICATIONS</div>
+    <div class="metric-value" style="color:var(--alert-nominal);">{{ stats.total_notifications }}</div>
+    <div class="zone-meta">Dispatched via SMS, Email, &amp; Push</div>
+  </div>
+</div>
+
+<!-- Incidents Breakdown Table -->
+<div class="card" style="margin-bottom:18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="section-title" style="margin-bottom:0;">Incident Log ({{ incidents|length }} records)</div>
+    <span class="badge badge-info">{{ period|capitalize }} Scope</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Timestamp</th>
+          <th>Location / District</th>
+          <th>Hazard Type</th>
+          <th>Severity</th>
+          <th>Probability</th>
+          <th>Model Prediction</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inc in incidents %}
+        <tr>
+          <td class="mono">#{{ inc.id }}</td>
+          <td class="mono" style="font-size:12px;">{{ inc.date }}</td>
+          <td><strong>{{ inc.location }}</strong></td>
+          <td>{{ inc.disaster_type }}</td>
+          <td>
+            <span class="badge {% if inc.severity == 'High' %}badge-high{% elif inc.severity == 'Moderate' %}badge-medium{% else %}badge-low{% endif %}">
+              {{ inc.severity }}
+            </span>
+          </td>
+          <td class="mono">{{ (inc.probability * 100)|round|int }}%</td>
+          <td style="font-size:12.5px;">{{ inc.prediction or "—" }}</td>
+        </tr>
+        {% endfor %}
+        {% if not incidents %}
+        <tr><td colspan="7" class="empty-state">No incidents recorded for this reporting period.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Deployments Audit Table -->
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="section-title" style="margin-bottom:0;">Rescue Deployments Archive ({{ deployments|length }} records)</div>
+    <span class="badge badge-info mono">Resource Allocations</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Deployment ID</th>
+          <th>Dispatched Unit</th>
+          <th>Target Zone</th>
+          <th>Receiving Hospital</th>
+          <th>Beds Held</th>
+          <th>Authorized By</th>
+          <th>Status</th>
+          <th>Deployed At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dep in deployments %}
+        <tr>
+          <td class="mono">#{{ dep.id }}</td>
+          <td><strong>{{ dep.team_name or 'Unit #' ~ dep.team_id }}</strong></td>
+          <td>{{ dep.zone }}</td>
+          <td>{{ dep.hospital_name or 'Hospital #' ~ dep.hospital_id if dep.hospital_id else '—' }}</td>
+          <td class="mono">{{ dep.beds_reserved }}</td>
+          <td>{{ dep.deployed_by or 'Command' }}</td>
+          <td>
+            <span class="badge {% if dep.status == 'active' %}badge-medium{% else %}badge-available{% endif %}">
+              {{ dep.status|upper }}
+            </span>
+          </td>
+          <td class="mono" style="font-size:12px;">{{ dep.deployed_at }}</td>
+        </tr>
+        {% endfor %}
+        {% if not deployments %}
+        <tr><td colspan="8" class="empty-state">No deployments registered for this reporting window.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

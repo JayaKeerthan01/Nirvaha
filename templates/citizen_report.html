@@ -1,0 +1,138 @@
+{% extends "citizen_base.html" %}
+
+{% block title %}Report Emergency Incident{% endblock %}
+
+{% block content %}
+<div class="citizen-card" style="max-width: 680px; margin: 0 auto; padding: 28px;">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom: 20px;">
+    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 84, 112, 0.15); display: flex; align-items: center; justify-content: center; font-size: 22px;">
+      🚨
+    </div>
+    <div>
+      <h1 style="font-size: 22px; font-weight: 700; margin: 0; color: #FFFFFF;">Report Emergency Incident</h1>
+      <p style="font-size: 13px; color: #8F9CAE; margin: 4px 0 0 0;">
+        Emergency dispatchers and field rescue teams receive citizen incident reports in real time.
+      </p>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('citizen_report') }}" style="display: flex; flex-direction: column; gap: 16px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Your Name *</label>
+        <input type="text" name="reporter_name" required placeholder="e.g. Ramesh Kumar"
+               style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Mobile Phone (for callbacks) *</label>
+        <input type="tel" name="reporter_phone" required placeholder="e.g. +91 98765 43210"
+               style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Incident Type *</label>
+        <select name="disaster_type" required
+                style="width:100%; padding:10px 14px; border-radius:8px; background:#161F30; border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+          <option value="Flooding / Waterlogging">🌊 Flooding / Severe Waterlogging</option>
+          <option value="Fallen Tree / Power Hazard">⚡ Fallen Tree / Live Electric Wire</option>
+          <option value="Structural Damage / Collapse">🏚️ Building / Wall Collapse</option>
+          <option value="Road Blockage / Washout">🚧 Road Submerged or Cut Off</option>
+          <option value="Medical Emergency / Trapped">🚑 Persons Trapped / Medical Distress</option>
+          <option value="Fire Hazard">🔥 Fire / Explosion Hazard</option>
+          <option value="Other Danger">⚠️ Other Life-Safety Threat</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Affected Zone / Locality *</label>
+        <input list="zones-list" name="location" required placeholder="e.g. Bellandur, Outer Ring Road"
+               style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+        <datalist id="zones-list">
+          {% for z in zones %}
+            <option value="{{ z.name }}">
+          {% endfor %}
+        </datalist>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label style="font-size:12px; font-weight:600; color:#CAD5E2;">GPS Geolocation (Optional)</label>
+        <button type="button" id="get-gps-btn" class="btn btn-ghost" style="padding:4px 10px; font-size:11px; gap:4px;">
+          📍 Get Current Location
+        </button>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <input type="text" id="gps-lat" name="lat" placeholder="Latitude (e.g. 12.9260)"
+               style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:#CAD5E2; font-size:13px;" readonly>
+        <input type="text" id="gps-lon" name="lon" placeholder="Longitude (e.g. 77.6790)"
+               style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:#CAD5E2; font-size:13px;" readonly>
+      </div>
+      <div id="gps-status" style="font-size:11px; color:#00EB96; margin-top:4px; display:none;"></div>
+    </div>
+
+    <div>
+      <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Severity Assessment</label>
+      <div style="display:flex; gap:12px;">
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:rgba(255,84,112,0.1); border:1px solid rgba(255,84,112,0.3); color:#FF5470; cursor:pointer;">
+          <input type="radio" name="severity" value="Critical" style="accent-color:#FF5470;">
+          <span style="font-size:13px; font-weight:600;">Critical (Life Threat)</span>
+        </label>
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:rgba(255,170,0,0.1); border:1px solid rgba(255,170,0,0.3); color:#FFAA00; cursor:pointer;">
+          <input type="radio" name="severity" value="High" checked style="accent-color:#FFAA00;">
+          <span style="font-size:13px; font-weight:600;">High (Serious Hazard)</span>
+        </label>
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:#CAD5E2; cursor:pointer;">
+          <input type="radio" name="severity" value="Moderate" style="accent-color:#CAD5E2;">
+          <span style="font-size:13px; font-weight:600;">Moderate (Caution)</span>
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Incident Description & Details *</label>
+      <textarea name="description" rows="4" required placeholder="Describe what you see: water depth, blocked landmark, stranded people, or immediate dangers..."
+                style="width:100%; padding:12px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+    </div>
+
+    <div style="margin-top: 8px;">
+      <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:15px; font-weight:600; background:#FF5470; border:none; color:#FFF; border-radius:8px; cursor:pointer;">
+        🚨 Submit Urgent Emergency Report
+      </button>
+      <p style="font-size:11px; color:#8F9CAE; text-align:center; margin-top:8px;">
+        For immediate police or medical life-threats, dial <strong>112</strong> or <strong>108</strong> directly.
+      </p>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.getElementById('get-gps-btn').addEventListener('click', function() {
+    const statusEl = document.getElementById('gps-status');
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Acquiring GPS fix...';
+    statusEl.style.color = '#FFAA00';
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        document.getElementById('gps-lat').value = pos.coords.latitude.toFixed(4);
+        document.getElementById('gps-lon').value = pos.coords.longitude.toFixed(4);
+        statusEl.textContent = `✓ GPS Fix Acquired (Accuracy: ±${Math.round(pos.coords.accuracy)}m)`;
+        statusEl.style.color = '#00EB96';
+      },
+      function(err) {
+        statusEl.textContent = 'Could not acquire GPS: ' + err.message;
+        statusEl.style.color = '#FF5470';
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+</script>
+{% endblock %}

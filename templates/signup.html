@@ -20,27 +20,40 @@
       <form method="POST" action="{{ url_for('signup') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="field">
-          <label for="name">Name</label>
-          <input type="text" id="name" name="name" required autofocus value="{{ name or '' }}">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" required autofocus placeholder="e.g. Aditi Rao" value="{{ name or '' }}">
         </div>
         <div class="field">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required value="{{ email or '' }}">
+          <label for="email">Email Address <span style="font-size:11px; color:var(--signal-info); font-weight:normal;">(For Verification &amp; Alerts)</span></label>
+          <input type="email" id="email" name="email" required placeholder="name@example.com" value="{{ email or '' }}">
+          <div style="font-size:11.5px; color:var(--fog-300); margin-top:4px;">
+            A real, permanent email address is required to receive your 6-digit verification code and official disaster alerts. Disposable or fake emails are automatically rejected.
+          </div>
+        </div>
+        <div class="field">
+          <label for="phone">Mobile Number <span style="font-size:11px; color:var(--alert-warning); font-weight:normal;">(Required for Emergency SMS)</span></label>
+          <input type="tel" id="phone" name="phone" required placeholder="+91 98765 43210 or 10-digit number" value="{{ phone or '' }}">
+          <div style="font-size:11.5px; color:var(--fog-300); margin-top:4px;">
+            Critical life-safety SMS alerts, hazard warnings, and urgent evacuation orders are sent directly to this number.
+          </div>
         </div>
         <div class="field">
           <label for="password">Password</label>
           <input type="password" id="password" name="password" required minlength="8" placeholder="At least 8 characters">
         </div>
         <div class="field">
-          <label for="zone">Your area (optional)</label>
+          <label for="zone">Your Home District / Area</label>
           <select id="zone" name="zone">
-            <option value="">Not sure / other</option>
+            <option value="">Select your local area (recommended)</option>
             {% for z in zones %}
               <option value="{{ z.name }}" {% if zone and z.name == zone %}selected{% endif %}>{{ z.name }}</option>
             {% endfor %}
           </select>
+          <div style="font-size:11.5px; color:var(--fog-300); margin-top:4px;">
+            Enables instant localized hazard warnings, closest shelter auto-assignment, and evacuation routing.
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Create account</button>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; height:44px; margin-top:8px;">Create Community Account</button>
       </form>
 
       <div class="hint-box">

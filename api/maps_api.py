@@ -24,6 +24,14 @@ except ImportError:
     requests = None
 
 
+CONGESTION_MULTIPLIERS = {
+    "Low": 1.0,
+    "Moderate": 1.35,
+    "High": 2.1,
+    "Severe": 3.6,
+}
+
+
 def get_zone_markers():
     from database.db import get_zones
     return [
@@ -32,21 +40,57 @@ def get_zone_markers():
     ]
 
 
-def _synthetic_route(start, end, n_points=6):
-    """Builds a plausible curved polyline between two points so the map has
-    something realistic to draw without a real routing engine."""
-    lat1, lon1 = start
-    lat2, lon2 = end
+def _coord(point):
+    """Normalize input point (dict or tuple/list) into (lat, lon)."""
+    if isinstance(point, dict):
+        return (float(point["lat"]), float(point["lon"]))
+    return (float(point[0]), float(point[1]))
+
+
+def _synthetic_route(start, end, n_points=8, avoid_points=None):
+    """Builds a plausible curved polyline between two points, avoiding hazard points
+    if specified, so the map has realistic waypoints to draw."""
+    lat1, lon1 = _coord(start)
+    lat2, lon2 = _coord(end)
     points = []
-    rng = random.Random(f"{lat1}{lon1}{lat2}{lon2}")
+    rng = random.Random(f"{lat1:.4f}{lon1:.4f}{lat2:.4f}{lon2:.4f}")
+
+    # Vector from start to end
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    # Perpendicular normal vector (-dlon, dlat)
+    norm_lat = -dlon
+    norm_lon = dlat
+    norm_len = math.hypot(norm_lat, norm_lon) or 1.0
+    norm_lat /= norm_len
+    norm_lon /= norm_len
+
+    # If any avoid_points exist, deflect away from them
+    deflection_bias = 0.0
+    if avoid_points:
+        for ap in avoid_points:
+            alat, alon = _coord(ap)
+            # Distance from midpoint to avoid point
+            mid_lat = (lat1 + lat2) / 2.0
+            mid_lon = (lon1 + lon2) / 2.0
+            dist_to_hazard = math.hypot(mid_lat - alat, mid_lon - alon)
+            if dist_to_hazard < 0.08:  # within ~9km
+                deflection_bias += 0.025 if rng.random() > 0.5 else -0.025
+
     for i in range(n_points + 1):
         f = i / n_points
-        lat = lat1 + (lat2 - lat1) * f
-        lon = lon1 + (lon2 - lon1) * f
-        # small perpendicular jitter so the line isn't perfectly straight
-        jitter = math.sin(f * math.pi) * rng.uniform(-0.01, 0.01)
-        points.append([round(lat + jitter, 5), round(lon + jitter, 5)])
+        base_lat = lat1 + dlat * f
+        base_lon = lon1 + dlon * f
+
+        # Parabolic curve + small realistic road jitter + hazard deflection
+        curve = math.sin(f * math.pi) * (rng.uniform(-0.008, 0.008) + deflection_bias)
+        lat = base_lat + norm_lat * curve
+        lon = base_lon + norm_lon * curve
+        points.append([round(lat, 5), round(lon, 5)])
+
     return points
+
 
 def _decode_polyline(encoded):
     """Decodes Google's encoded polyline format into [[lat, lon], ...]."""
@@ -70,10 +114,11 @@ def _decode_polyline(encoded):
         points.append([lat / 1e5, lon / 1e5])
     return points
 
-def get_directions(start_zone, end_zone):
-    """Returns dict: {distance_km, duration_min, path: [[lat, lon], ...]}"""
-    start = (start_zone["lat"], start_zone["lon"])
-    end = (end_zone["lat"], end_zone["lon"])
+
+def get_directions(start_zone, end_zone, congestion_level="Low", avoid_zones=None):
+    """Returns dict: {distance_km, duration_min, path: [[lat, lon], ...], congestion_level, source}"""
+    start = _coord(start_zone)
+    end = _coord(end_zone)
 
     if Config.GOOGLE_MAPS_API_KEY and requests is not None:
         try:
@@ -88,10 +133,13 @@ def get_directions(start_zone, end_zone):
             )
             data = resp.json()
             leg = data["routes"][0]["legs"][0]
+            base_dur = leg["duration"]["value"] / 60
+            multiplier = CONGESTION_MULTIPLIERS.get(congestion_level, 1.0)
             return {
                 "distance_km": round(leg["distance"]["value"] / 1000, 1),
-                "duration_min": round(leg["duration"]["value"] / 60, 1),
-                "path": _decode_polyline(data["routes"][0]["overview_polyline"]["points"]),  # polyline decode omitted for brevity
+                "duration_min": round(base_dur * multiplier, 1),
+                "path": _decode_polyline(data["routes"][0]["overview_polyline"]["points"]),
+                "congestion_level": congestion_level,
                 "source": "google_maps",
             }
         except Exception as exc:
@@ -102,10 +150,20 @@ def get_directions(start_zone, end_zone):
     # Haversine distance as a stand-in for real routing distance
     from utils.geo import haversine_km
     distance_km = haversine_km(*start, *end) * 1.35  # *1.35 road-vs-straight-line factor
+    multiplier = CONGESTION_MULTIPLIERS.get(congestion_level, 1.0)
+    base_duration = distance_km * 2.1  # ~28 km/h baseline urban speed
+    duration_min = round(base_duration * multiplier, 1)
 
+    avoid_points = [_coord(z) for z in (avoid_zones or [])]
     return {
         "distance_km": round(distance_km, 1),
-        "duration_min": round(distance_km * 2.1, 1),  # ~28 km/h average urban speed
-        "path": _synthetic_route(start, end),
+        "duration_min": max(1.0, duration_min),
+        "path": _synthetic_route(start, end, n_points=8, avoid_points=avoid_points),
+        "congestion_level": congestion_level,
         "source": "simulated",
     }
+
+
+def get_shelter_directions(start_point, shelter, congestion_level="Low", avoid_zones=None):
+    """Convenience helper to route from a zone/coordinate to an evacuation relief shelter."""
+    return get_directions(start_point, shelter, congestion_level=congestion_level, avoid_zones=avoid_zones)
