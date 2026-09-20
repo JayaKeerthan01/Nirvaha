@@ -742,6 +742,33 @@ def adjust_hospital_beds(hospital_id, delta):
     query("UPDATE hospitals SET beds_available = ? WHERE id = ?", (new_val, hospital_id))
 
 
+def get_all_hospitals():
+    return query("SELECT * FROM hospitals ORDER BY hospital_name")
+
+
+def update_hospital_capacity(hospital_id, beds_available=None, icu_available=None, doctors_available=None, ambulances_available=None):
+    fields = []
+    values = []
+    if beds_available is not None:
+        fields.append("beds_available = ?")
+        values.append(beds_available)
+    if icu_available is not None:
+        fields.append("icu_available = ?")
+        values.append(icu_available)
+    if doctors_available is not None:
+        fields.append("doctors_available = ?")
+        values.append(doctors_available)
+    if ambulances_available is not None:
+        fields.append("ambulances_available = ?")
+        values.append(ambulances_available)
+    if not fields:
+        return 0
+    sql = f"UPDATE hospitals SET {', '.join(fields)} WHERE id = ?"
+    values.append(hospital_id)
+    return query(sql, tuple(values))
+
+
+
 # ------------------------------------------------------- login rate limit --
 
 def record_login_attempt(ip_address, email, success):
@@ -1231,17 +1258,62 @@ def create_emergency_report(reporter_name, reporter_phone, disaster_type, locati
     )
 
 
-def get_emergency_reports(limit=50, status=None):
-    if status:
-        return query(
-            "SELECT * FROM emergency_reports WHERE status = ? ORDER BY created_at DESC LIMIT ?",
-            (status, limit),
-        )
-    return query("SELECT * FROM emergency_reports ORDER BY created_at DESC LIMIT ?", (limit,))
+def get_emergency_reports(limit=100, status=None, severity=None, disaster_type=None, search=None):
+    sql = "SELECT * FROM emergency_reports WHERE 1=1"
+    params = []
+    if status and status.lower() != "all":
+        sql += " AND LOWER(status) = LOWER(?)"
+        params.append(status)
+    if severity and severity.lower() != "all":
+        sql += " AND LOWER(severity) = LOWER(?)"
+        params.append(severity)
+    if disaster_type and disaster_type.lower() != "all":
+        sql += " AND LOWER(disaster_type) LIKE LOWER(?)"
+        params.append(f"%{disaster_type}%")
+    if search:
+        s = f"%{search.strip()}%"
+        sql += " AND (reporter_name LIKE ? OR reporter_phone LIKE ? OR location LIKE ? OR description LIKE ?)"
+        params.extend([s, s, s, s])
+    sql += " ORDER BY created_at DESC LIMIT ?"
+    params.append(limit)
+    return query(sql, params)
+
+
+def get_emergency_report_by_id(report_id):
+    return query("SELECT * FROM emergency_reports WHERE id = ?", (report_id,), fetchone=True)
+
+
+def get_emergency_report_stats():
+    total_row = query("SELECT COUNT(*) as c FROM emergency_reports", fetchone=True)
+    pending_row = query("SELECT COUNT(*) as c FROM emergency_reports WHERE LOWER(status) = 'pending'", fetchone=True)
+    verified_row = query("SELECT COUNT(*) as c FROM emergency_reports WHERE LOWER(status) = 'verified'", fetchone=True)
+    dispatched_row = query("SELECT COUNT(*) as c FROM emergency_reports WHERE LOWER(status) = 'dispatched'", fetchone=True)
+    resolved_row = query("SELECT COUNT(*) as c FROM emergency_reports WHERE LOWER(status) = 'resolved'", fetchone=True)
+    critical_row = query("SELECT COUNT(*) as c FROM emergency_reports WHERE LOWER(severity) = 'critical'", fetchone=True)
+    return {
+        "total": total_row["c"] if total_row else 0,
+        "pending": pending_row["c"] if pending_row else 0,
+        "verified": verified_row["c"] if verified_row else 0,
+        "dispatched": dispatched_row["c"] if dispatched_row else 0,
+        "resolved": resolved_row["c"] if resolved_row else 0,
+        "critical": critical_row["c"] if critical_row else 0,
+    }
+
+
+def get_pending_emergency_reports_count():
+    row = query("SELECT COUNT(*) as c FROM emergency_reports WHERE LOWER(status) = 'pending'", fetchone=True)
+    return row["c"] if row else 0
 
 
 def update_emergency_report_status(report_id, status):
     return query("UPDATE emergency_reports SET status = ? WHERE id = ?", (status, report_id))
+
+
+def delete_emergency_report(report_id):
+    return query("DELETE FROM emergency_reports WHERE id = ?", (report_id,))
+
+
+
 
 
 

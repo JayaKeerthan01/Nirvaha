@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+{% block title %}Citizen Incident Reports{% endblock %}
+{% block page_title %}Citizen Incident Reports{% endblock %}
+{% block page_subtitle %}LIVE FIELD REPORTS · SOS TRIAGE · EMERGENCY RESCUE DISPATCH{% endblock %}
+
+{% block content %}
+<div class="incidents-container">
+
+  <!-- KPI Overview Ribbon -->
+  <div class="kpi-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+    <div class="card kpi-card" style="border-left: 4px solid #ff4757; background: linear-gradient(135deg, rgba(255, 71, 87, 0.08) 0%, rgba(20, 26, 36, 0.6) 100%);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim, #8892b0); font-weight:600;">Pending Review</div>
+          <div style="font-size:28px; font-weight:800; color:#ff4757; margin-top:4px;" id="stat-pending">{{ stats.pending }}</div>
+        </div>
+        <span style="font-size:24px; filter: drop-shadow(0 0 6px rgba(255,71,87,0.5));">🚨</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted, #718096); margin-top:6px;">Awaiting dispatcher triage</div>
+    </div>
+
+    <div class="card kpi-card" style="border-left: 4px solid #ff9f43; background: linear-gradient(135deg, rgba(255, 159, 67, 0.08) 0%, rgba(20, 26, 36, 0.6) 100%);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim, #8892b0); font-weight:600;">Critical Severity</div>
+          <div style="font-size:28px; font-weight:800; color:#ff9f43; margin-top:4px;" id="stat-critical">{{ stats.critical }}</div>
+        </div>
+        <span style="font-size:24px;">⚡</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted, #718096); margin-top:6px;">Immediate threat to life</div>
+    </div>
+
+    <div class="card kpi-card" style="border-left: 4px solid #2ed573; background: linear-gradient(135deg, rgba(46, 213, 115, 0.08) 0%, rgba(20, 26, 36, 0.6) 100%);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim, #8892b0); font-weight:600;">Dispatched / In Action</div>
+          <div style="font-size:28px; font-weight:800; color:#2ed573; margin-top:4px;" id="stat-dispatched">{{ stats.dispatched }}</div>
+        </div>
+        <span style="font-size:24px;">🚒</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted, #718096); margin-top:6px;">Rescue teams deployed</div>
+    </div>
+
+    <div class="card kpi-card" style="border-left: 4px solid #00d2d3; background: linear-gradient(135deg, rgba(0, 210, 211, 0.08) 0%, rgba(20, 26, 36, 0.6) 100%);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim, #8892b0); font-weight:600;">Resolved Cases</div>
+          <div style="font-size:28px; font-weight:800; color:#00d2d3; margin-top:4px;" id="stat-resolved">{{ stats.resolved }}</div>
+        </div>
+        <span style="font-size:24px;">✅</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted, #718096); margin-top:6px;">Successfully addressed</div>
+    </div>
+
+    <div class="card kpi-card" style="border-left: 4px solid #5f27cd; background: linear-gradient(135deg, rgba(95, 39, 205, 0.08) 0%, rgba(20, 26, 36, 0.6) 100%);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim, #8892b0); font-weight:600;">Total Reports</div>
+          <div style="font-size:28px; font-weight:800; color:#c8d6e5; margin-top:4px;" id="stat-total">{{ stats.total }}</div>
+        </div>
+        <span style="font-size:24px;">📋</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted, #718096); margin-top:6px;">All submitted incidents</div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="card" style="margin-bottom: 20px; padding: 16px 20px;">
+    <form method="GET" action="{{ url_for('incidents_page') }}" id="filter-form" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+      
+      <!-- Search Input -->
+      <div style="flex: 2; min-width: 220px;">
+        <label for="search-input" style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #a0aec0; margin-bottom: 5px; display: block;">Search Incidents</label>
+        <div style="position: relative;">
+          <input type="text" id="search-input" name="q" value="{{ search_query }}" placeholder="Search by name, phone, zone, details..." 
+                 style="width: 100%; padding: 8px 12px 8px 32px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: #fff; font-size: 13px;">
+          <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #718096;">🔍</span>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div style="flex: 1; min-width: 140px;">
+        <label for="status-select" style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #a0aec0; margin-bottom: 5px; display: block;">Status</label>
+        <select id="status-select" name="status" class="select-lg" style="width: 100%; padding: 8px 10px; font-size: 13px;">
+          <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+          <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending Review</option>
+          <option value="Verified" {% if selected_status == 'Verified' %}selected{% endif %}>Verified</option>
+          <option value="Dispatched" {% if selected_status == 'Dispatched' %}selected{% endif %}>Dispatched</option>
+          <option value="Resolved" {% if selected_status == 'Resolved' %}selected{% endif %}>Resolved</option>
+          <option value="Rejected" {% if selected_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+      </div>
+
+      <!-- Severity Filter -->
+      <div style="flex: 1; min-width: 130px;">
+        <label for="severity-select" style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #a0aec0; margin-bottom: 5px; display: block;">Severity</label>
+        <select id="severity-select" name="severity" class="select-lg" style="width: 100%; padding: 8px 10px; font-size: 13px;">
+          <option value="all" {% if selected_severity == 'all' %}selected{% endif %}>All Severities</option>
+          <option value="Critical" {% if selected_severity == 'Critical' %}selected{% endif %}>Critical</option>
+          <option value="High" {% if selected_severity == 'High' %}selected{% endif %}>High</option>
+          <option value="Moderate" {% if selected_severity == 'Moderate' %}selected{% endif %}>Moderate</option>
+        </select>
+      </div>
+
+      <!-- Incident Type Filter -->
+      <div style="flex: 1; min-width: 150px;">
+        <label for="type-select" style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #a0aec0; margin-bottom: 5px; display: block;">Incident Type</label>
+        <select id="type-select" name="disaster_type" class="select-lg" style="width: 100%; padding: 8px 10px; font-size: 13px;">
+          <option value="all" {% if selected_type == 'all' %}selected{% endif %}>All Incident Types</option>
+          <option value="Flood" {% if 'Flood' in selected_type %}selected{% endif %}>Flooding / Waterlogging</option>
+          <option value="Fire" {% if 'Fire' in selected_type %}selected{% endif %}>Fire / Explosion</option>
+          <option value="Landslide" {% if 'Landslide' in selected_type %}selected{% endif %}>Landslide / Mudflow</option>
+          <option value="Collapse" {% if 'Collapse' in selected_type %}selected{% endif %}>Building / Structural</option>
+          <option value="Medical" {% if 'Medical' in selected_type %}selected{% endif %}>Medical / Trapped</option>
+          <option value="Road" {% if 'Road' in selected_type %}selected{% endif %}>Road Blocked</option>
+        </select>
+      </div>
+
+      <!-- Buttons -->
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="submit" class="btn btn-primary" style="height: 36px; padding: 0 16px; font-size: 13px;">Filter</button>
+        <a href="{{ url_for('incidents_page') }}" class="btn btn-ghost" style="height: 36px; padding: 0 12px; font-size: 13px; display: inline-flex; align-items: center;">Reset</a>
+        <button type="button" id="refresh-btn" class="btn btn-ghost" title="Refresh Feed" style="height: 36px; padding: 0 10px; font-size: 13px;">🔄</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Incidents Stream / Cards List -->
+  <div class="incidents-feed-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+    <div style="font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+      <span>Active Citizen Feed</span>
+      <span class="badge badge-info" id="feed-count">{{ reports|length }} Incident{% if reports|length != 1 %}s{% endif %}</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="mono" style="font-size:12px; color:var(--text-muted, #718096); display:flex; align-items:center; gap:6px;">
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#2ed573; box-shadow:0 0 8px #2ed573; animation: pulse 2s infinite;"></span>
+        Live Ingestion Active
+      </span>
+    </div>
+  </div>
+
+  {% if not reports %}
+  <div class="card" style="text-align: center; padding: 48px 20px;">
+    <div style="font-size: 48px; margin-bottom: 12px;">🛡️</div>
+    <div style="font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 6px;">No Matching Citizen Reports Found</div>
+    <div style="font-size: 13px; color: var(--text-muted, #718096); max-width: 420px; margin: 0 auto 16px auto;">
+      {% if search_query or selected_status != 'all' or selected_severity != 'all' or selected_type != 'all' %}
+      No incidents match your current filter criteria. Try resetting the filters.
+      {% else %}
+      All citizen reports have been resolved or no new reports have been submitted.
+      {% endif %}
+    </div>
+    {% if search_query or selected_status != 'all' or selected_severity != 'all' or selected_type != 'all' %}
+    <a href="{{ url_for('incidents_page') }}" class="btn btn-primary" style="display:inline-block;">Reset All Filters</a>
+    {% endif %}
+  </div>
+  {% else %}
+
+  <div class="incidents-grid" style="display: grid; grid-template-columns: 1fr; gap: 14px;" id="incidents-list">
+    {% for r in reports %}
+    <div class="card incident-card" id="incident-row-{{ r.id }}" 
+         style="padding: 18px 20px; border-left: 4px solid {% if r.severity == 'Critical' %}#ff4757{% elif r.severity == 'High' %}#ff9f43{% else %}#00d2d3{% endif %}; transition: transform 0.15s ease, box-shadow 0.15s ease;">
+      
+      <!-- Top Row: IDs, Types, Badges, and Date -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span class="mono" style="font-weight: 700; color: #a0aec0; font-size: 12px;">#INC-{{ r.id }}</span>
+          
+          <!-- Disaster Type Badge -->
+          <span style="font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #fff;">
+            {% if 'Flood' in r.disaster_type or 'Water' in r.disaster_type %}🌊
+            {% elif 'Fire' in r.disaster_type %}🔥
+            {% elif 'Landslide' in r.disaster_type %}⚠️
+            {% elif 'Collapse' in r.disaster_type %}🏚️
+            {% elif 'Road' in r.disaster_type %}🚧
+            {% elif 'Medical' in r.disaster_type %}🚑
+            {% else %}🚨{% endif %}
+            {{ r.disaster_type }}
+          </span>
+
+          <!-- Severity Badge -->
+          {% if r.severity == 'Critical' %}
+          <span class="badge badge-high" style="background: rgba(255,71,87,0.2); color: #ff4757; border: 1px solid rgba(255,71,87,0.4); font-weight: 700;">⚡ Critical Severity</span>
+          {% elif r.severity == 'High' %}
+          <span class="badge badge-medium" style="background: rgba(255,159,67,0.2); color: #ff9f43; border: 1px solid rgba(255,159,67,0.4); font-weight: 700;">⚠️ High Hazard</span>
+          {% else %}
+          <span class="badge badge-info" style="background: rgba(0,210,211,0.2); color: #00d2d3; border: 1px solid rgba(0,210,211,0.4); font-weight: 600;">Moderate</span>
+          {% endif %}
+
+          <!-- Status Badge -->
+          <span id="status-badge-{{ r.id }}" class="badge" style="font-weight: 700;
+            {% if r.status == 'Pending' %}background: rgba(255,71,87,0.15); color: #ff6b81; border: 1px solid #ff4757;
+            {% elif r.status == 'Verified' %}background: rgba(0,210,211,0.15); color: #00d2d3; border: 1px solid #00d2d3;
+            {% elif r.status == 'Dispatched' %}background: rgba(46,213,115,0.15); color: #2ed573; border: 1px solid #2ed573;
+            {% elif r.status == 'Resolved' %}background: rgba(164,176,190,0.15); color: #a4b0be; border: 1px solid #747d8c;
+            {% else %}background: rgba(116,125,140,0.15); color: #747d8c; border: 1px solid #57606f;{% endif %}">
+            ● {{ r.status }}
+          </span>
+        </div>
+
+        <div style="font-size: 12px; color: #718096; display: flex; align-items: center; gap: 6px;">
+          <span>🕒 Reported:</span>
+          <span class="mono" style="color: #cbd5e0;">{{ r.created_at }}</span>
+        </div>
+      </div>
+
+      <!-- Details Section -->
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 14px;">
+        <div>
+          <!-- Description -->
+          <div style="font-size: 14px; color: #f1f2f6; line-height: 1.5; margin-bottom: 10px; background: rgba(15, 23, 42, 0.45); padding: 10px 14px; border-radius: 6px; border-left: 3px solid rgba(255,255,255,0.2);">
+            {{ r.description }}
+          </div>
+
+          <!-- Location & Map -->
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px;">
+            <div style="color: #a0aec0; display: flex; align-items: center; gap: 4px;">
+              <span style="color: #ff4757;">📍</span>
+              <strong style="color: #fff;">{{ r.location }}</strong>
+            </div>
+            {% if r.lat and r.lon %}
+            <span class="mono" style="font-size: 11px; color: #718096; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">
+              Lat: {{ "%.4f"|format(r.lat) }}, Lon: {{ "%.4f"|format(r.lon) }}
+            </span>
+            <a href="https://www.google.com/maps?q={{ r.lat }},{{ r.lon }}" target="_blank" 
+               style="font-size: 12px; color: #00d2d3; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+              View on Map ↗
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Reporter Metadata Sidebar -->
+        <div style="background: rgba(255,255,255,0.03); border-radius: 6px; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.06); font-size: 12px;">
+          <div style="color: #718096; text-transform: uppercase; font-size: 10px; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px;">Reporter Info</div>
+          <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px;">👤 {{ r.reporter_name }}</div>
+          <div style="margin-bottom: 4px;">
+            <a href="tel:{{ r.reporter_phone }}" style="color: #2ed573; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+              📞 {{ r.reporter_phone }}
+            </a>
+          </div>
+          <div style="color: #718096; font-size: 11px;">Direct Citizen SOS</div>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          
+          <!-- Verify Button -->
+          {% if r.status == 'Pending' %}
+          <button type="button" class="btn btn-secondary" onclick="updateIncidentStatus({{ r.id }}, 'Verified')" 
+                  style="font-size: 12px; padding: 5px 12px; background: rgba(0, 210, 211, 0.2); color: #00d2d3; border: 1px solid #00d2d3;">
+            ✓ Verify Report
+          </button>
+          {% endif %}
+
+          <!-- Dispatch Rescue Team Button -->
+          {% if r.status != 'Dispatched' and r.status != 'Resolved' %}
+          <button type="button" class="btn btn-primary" onclick="openDispatchModal({{ r.id }}, '{{ r.location|replace('\'', '\\\'') }}', '{{ r.disaster_type|replace('\'', '\\\'') }}', '{{ r.severity }}')" 
+                  style="font-size: 12px; padding: 5px 14px; gap: 4px; display: inline-flex; align-items: center; background: #ff4757; border-color: #ff4757;">
+            <span>🚒</span> Dispatch Rescue Unit
+          </button>
+          {% endif %}
+
+          <!-- Resolve Button -->
+          {% if r.status != 'Resolved' %}
+          <button type="button" class="btn btn-ghost" onclick="updateIncidentStatus({{ r.id }}, 'Resolved')" 
+                  style="font-size: 12px; padding: 5px 12px; color: #2ed573; border: 1px solid rgba(46,213,115,0.4);">
+            ✓ Mark Resolved
+          </button>
+          {% else %}
+          <button type="button" class="btn btn-ghost" onclick="updateIncidentStatus({{ r.id }}, 'Pending')" 
+                  style="font-size: 12px; padding: 5px 12px; color: #a0aec0;">
+            ↺ Reopen Incident
+          </button>
+          {% endif %}
+
+          <!-- Reject / Dismiss Button -->
+          {% if r.status == 'Pending' %}
+          <button type="button" class="btn btn-ghost" onclick="updateIncidentStatus({{ r.id }}, 'Rejected')" 
+                  style="font-size: 12px; padding: 5px 10px; color: #718096;" title="Mark as false alarm or duplicate">
+            ✕ Dismiss
+          </button>
+          {% endif %}
+        </div>
+
+        <div>
+          <!-- Delete Report Button -->
+          <button type="button" class="btn btn-ghost" onclick="deleteIncidentReport({{ r.id }})" 
+                  style="font-size: 11px; color: #718096; padding: 4px 8px;" title="Permanently delete this report">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Quick Dispatch Rescue Unit Modal -->
+<div id="dispatch-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+  <div style="background:#141a24; border:1px solid rgba(255,255,255,0.15); border-radius:10px; width:92%; max-width:500px; padding:24px; box-shadow:0 12px 36px rgba(0,0,0,0.6);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div style="font-size:17px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+        <span>🚒</span> Dispatch Rescue Unit
+      </div>
+      <button type="button" onclick="closeDispatchModal()" style="background:none; border:none; color:#a0aec0; font-size:18px; cursor:pointer;">&times;</button>
+    </div>
+
+    <input type="hidden" id="modal-report-id">
+
+    <div style="background:rgba(255,255,255,0.04); padding:12px; border-radius:6px; margin-bottom:16px; font-size:13px;">
+      <div style="margin-bottom:4px;"><strong style="color:#a0aec0;">Target Incident:</strong> <span id="modal-incident-title" style="color:#fff;"></span></div>
+      <div><strong style="color:#a0aec0;">Location:</strong> <span id="modal-incident-location" style="color:#00d2d3;"></span></div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <label for="modal-team-select" style="display:block; font-size:11px; text-transform:uppercase; font-weight:700; color:#a0aec0; margin-bottom:6px;">Select Rescue Team</label>
+      <select id="modal-team-select" class="select-lg" style="width:100%; padding:10px; background:#0f172a; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:6px;">
+        {% for t in teams %}
+        <option value="{{ t.id }}" {% if t.status == 'available' %}style="color:#2ed573;"{% endif %}>
+          {{ t.team_name }} ({{ t.zone }}) — {{ t.status|upper }} [{{ t.vehicles }} vehicles, {{ t.personnel }} personnel]
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button type="button" class="btn btn-ghost" onclick="closeDispatchModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-dispatch-btn" onclick="executeDispatch()" style="background:#ff4757; border-color:#ff4757; font-weight:700;">
+        Confirm &amp; Deploy Team
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Get CSRF Token
+const CSRF_TOKEN = "{{ csrf_token() }}";
+
+// Update Incident Status
+async function updateIncidentStatus(reportId, newStatus) {
+  try {
+    const res = await fetch(`/api/emergency/reports/${reportId}/status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": CSRF_TOKEN
+      },
+      body: JSON.stringify({ status: newStatus, csrf_token: CSRF_TOKEN })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      // Update UI badge
+      const badge = document.getElementById(`status-badge-${reportId}`);
+      if (badge) {
+        badge.textContent = `● ${newStatus}`;
+        if (newStatus === "Verified") {
+          badge.style.background = "rgba(0,210,211,0.15)";
+          badge.style.color = "#00d2d3";
+          badge.style.border = "1px solid #00d2d3";
+        } else if (newStatus === "Dispatched") {
+          badge.style.background = "rgba(46,213,115,0.15)";
+          badge.style.color = "#2ed573";
+          badge.style.border = "1px solid #2ed573";
+        } else if (newStatus === "Resolved") {
+          badge.style.background = "rgba(164,176,190,0.15)";
+          badge.style.color = "#a4b0be";
+          badge.style.border = "1px solid #747d8c";
+        }
+      }
+      if (data.stats) updateStatsRibbon(data.stats);
+      showToast(`Incident #${reportId} status updated to ${newStatus}`, "success");
+      setTimeout(() => window.location.reload(), 700);
+    } else {
+      showToast(data.error || "Failed to update incident", "error");
+    }
+  } catch (err) {
+    showToast("Network error updating incident status", "error");
+  }
+}
+
+// Delete Incident Report
+async function deleteIncidentReport(reportId) {
+  if (!confirm(`Are you sure you want to permanently delete incident report #${reportId}?`)) return;
+  try {
+    const res = await fetch(`/api/emergency/reports/${reportId}/delete`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": CSRF_TOKEN
+      },
+      body: JSON.stringify({ csrf_token: CSRF_TOKEN })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const row = document.getElementById(`incident-row-${reportId}`);
+      if (row) row.remove();
+      if (data.stats) updateStatsRibbon(data.stats);
+      showToast(`Incident #${reportId} deleted successfully`, "info");
+    } else {
+      showToast(data.error || "Failed to delete incident", "error");
+    }
+  } catch (err) {
+    showToast("Error deleting incident report", "error");
+  }
+}
+
+// Dispatch Modal Controls
+function openDispatchModal(reportId, location, disasterType, severity) {
+  document.getElementById("modal-report-id").value = reportId;
+  document.getElementById("modal-incident-title").textContent = `#INC-${reportId} (${disasterType} - ${severity})`;
+  document.getElementById("modal-incident-location").textContent = location;
+  const modal = document.getElementById("dispatch-modal");
+  modal.style.display = "flex";
+}
+
+function closeDispatchModal() {
+  document.getElementById("dispatch-modal").style.display = "none";
+}
+
+async function executeDispatch() {
+  const reportId = document.getElementById("modal-report-id").value;
+  const teamId = document.getElementById("modal-team-select").value;
+  const btn = document.getElementById("confirm-dispatch-btn");
+  btn.disabled = true;
+  btn.textContent = "Deploying...";
+
+  try {
+    const res = await fetch(`/api/emergency/reports/${reportId}/dispatch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": CSRF_TOKEN
+      },
+      body: JSON.stringify({ team_id: teamId, csrf_token: CSRF_TOKEN })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(data.message || `Rescue unit dispatched!`, "success");
+      closeDispatchModal();
+      setTimeout(() => window.location.reload(), 900);
+    } else {
+      showToast(data.error || "Dispatch failed", "error");
+      btn.disabled = false;
+      btn.textContent = "Confirm & Deploy Team";
+    }
+  } catch (err) {
+    showToast("Network error executing dispatch", "error");
+    btn.disabled = false;
+    btn.textContent = "Confirm & Deploy Team";
+  }
+}
+
+function updateStatsRibbon(stats) {
+  if (stats.pending !== undefined) document.getElementById("stat-pending").textContent = stats.pending;
+  if (stats.critical !== undefined) document.getElementById("stat-critical").textContent = stats.critical;
+  if (stats.dispatched !== undefined) document.getElementById("stat-dispatched").textContent = stats.dispatched;
+  if (stats.resolved !== undefined) document.getElementById("stat-resolved").textContent = stats.resolved;
+  if (stats.total !== undefined) document.getElementById("stat-total").textContent = stats.total;
+  
+  const navBadge = document.getElementById("nav-pending-incidents-badge");
+  if (navBadge) {
+    navBadge.textContent = stats.pending;
+    navBadge.style.display = stats.pending > 0 ? "inline-block" : "none";
+  }
+}
+
+function showToast(message, type = "info") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// Refresh button handler
+document.getElementById("refresh-btn")?.addEventListener("click", () => window.location.reload());
+
+// Close modal on escape key
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeDispatchModal();
+});
+</script>
+
+<style>
+.incident-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+</style>
+{% endblock %}

@@ -43,6 +43,13 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
             Rescue Ops
           </a>
+          <a class="nav-link {% if request.path.startswith('/incidents') or request.path.startswith('/admin/incidents') %}active{% endif %}" href="{{ url_for('incidents_page') }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Citizen Incidents
+            {% if pending_incidents_count and pending_incidents_count > 0 %}
+            <span class="badge badge-danger" id="nav-pending-incidents-badge" style="margin-left:auto; font-size:10px; padding:2px 7px; border-radius:10px; font-weight:700;">{{ pending_incidents_count }}</span>
+            {% endif %}
+          </a>
           <a class="nav-link {% if request.path == '/alerts' %}active{% endif %}" href="{{ url_for('alerts') }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 20h20L12 2z"/><path d="M12 10v4M12 17h.01"/></svg>
             Alerts

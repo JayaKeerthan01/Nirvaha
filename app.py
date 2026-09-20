@@ -71,6 +71,8 @@ from database.db import (
     get_all_iot_sensors, update_iot_sensor_reading,
     get_social_distress_feed, log_social_distress,
     create_emergency_report, get_emergency_reports, update_emergency_report_status,
+    get_emergency_report_stats, get_pending_emergency_reports_count,
+    get_emergency_report_by_id, delete_emergency_report,
 )
 from agents.weather_agent import weather_agent
 from agents.traffic_agent import traffic_agent
@@ -233,11 +235,19 @@ def issue_verification_code(user_id, email, name):
 
 @app.context_processor
 def inject_globals():
+    role = session.get("role")
+    pending_inc = 0
+    if role in ("admin", "operator"):
+        try:
+            pending_inc = get_pending_emergency_reports_count()
+        except Exception:
+            pending_inc = 0
     return {
         "app_name": "Nirvaha",
         "poll_interval_ms": Config.POLL_INTERVAL_MS,
         "current_user": session.get("user_name"),
-        "current_role": session.get("role"),
+        "current_role": role,
+        "pending_incidents_count": pending_inc,
     }
 
 
@@ -1272,25 +1282,121 @@ def citizen_report():
     return render_template("citizen_report.html", zones=zones)
 
 
+# ------------------------------------------------ Staff Incident Management ----
+
+@app.route("/incidents")
+@app.route("/admin/incidents")
+@staff_required
+def incidents_page():
+    """Dedicated management tab for Admin and Sub Admin to view and dispatch citizen incident reports."""
+    status = request.args.get("status", "all").strip()
+    severity = request.args.get("severity", "all").strip()
+    disaster_type = request.args.get("disaster_type", "all").strip()
+    search = request.args.get("q", "").strip()
+
+    reports = get_emergency_reports(
+        limit=100,
+        status=None if status == "all" else status,
+        severity=None if severity == "all" else severity,
+        disaster_type=None if disaster_type == "all" else disaster_type,
+        search=search or None,
+    )
+    stats = get_emergency_report_stats()
+    zones = get_zones()
+    teams = rescue_agent.get_all_teams()
+
+    return render_template(
+        "incidents.html",
+        reports=reports,
+        stats=stats,
+        zones=zones,
+        teams=teams,
+        selected_status=status,
+        selected_severity=severity,
+        selected_type=disaster_type,
+        search_query=search,
+    )
+
+
 @app.route("/api/emergency/reports", methods=["GET"])
 @staff_required
 def api_emergency_reports():
-    """Emergency incident reports queue for command dispatchers."""
+    """Emergency incident reports queue for command dispatchers with multi-filter query support."""
     status = request.args.get("status")
+    severity = request.args.get("severity")
+    disaster_type = request.args.get("disaster_type")
+    search = request.args.get("q")
+    reports = get_emergency_reports(
+        limit=100,
+        status=None if status in (None, "", "all") else status,
+        severity=None if severity in (None, "", "all") else severity,
+        disaster_type=None if disaster_type in (None, "", "all") else disaster_type,
+        search=search,
+    )
+    stats = get_emergency_report_stats()
     return jsonify({
         "ok": True,
-        "reports": get_emergency_reports(limit=50, status=status),
+        "reports": reports,
+        "stats": stats,
     })
 
 
 @app.route("/api/emergency/reports/<int:report_id>/status", methods=["POST"])
 @staff_required
 def api_emergency_report_update(report_id):
-    """Updates status of an emergency report (Verified, Dispatched, Resolved)."""
+    """Updates status of an emergency report (Verified, Dispatched, Resolved, Rejected)."""
     data = request.get_json(silent=True) or {}
-    new_status = data.get("status", "Verified")
+    new_status = data.get("status", "Verified").strip()
+    report = get_emergency_report_by_id(report_id)
+    if not report:
+        return jsonify({"ok": False, "error": "Report not found"}), 404
+
     update_emergency_report_status(report_id, new_status)
-    return jsonify({"ok": True, "report_id": report_id, "status": new_status})
+    log_audit("UPDATE_INCIDENT_STATUS", f"Incident #{report_id} ({report['disaster_type']} at {report['location']}) status changed to {new_status}")
+    stats = get_emergency_report_stats()
+    return jsonify({"ok": True, "report_id": report_id, "status": new_status, "stats": stats})
+
+
+@app.route("/api/emergency/reports/<int:report_id>/dispatch", methods=["POST"])
+@staff_required
+def api_emergency_report_dispatch(report_id):
+    """Quick-dispatches a rescue team to the incident location."""
+    report = get_emergency_report_by_id(report_id)
+    if not report:
+        return jsonify({"ok": False, "error": "Incident report not found"}), 404
+
+    loc = report.get("location") or "HSR Layout"
+    all_zones = [z["name"] for z in get_zones()]
+    matched_zone = next((z for z in all_zones if z.lower() in loc.lower()), all_zones[0] if all_zones else "HSR Layout")
+
+    actor = session.get("user_name") or "Duty Officer"
+    dep_res = rescue_agent.deploy(zone=matched_zone, deployed_by=actor)
+
+    update_emergency_report_status(report_id, "Dispatched")
+    team_name = dep_res.get("team_name") if isinstance(dep_res, dict) else "Field Emergency Unit"
+    log_audit("DISPATCH_INCIDENT_TEAM", f"Dispatched {team_name} to Citizen Incident #{report_id} at {report['location']}")
+
+    return jsonify({
+        "ok": True,
+        "report_id": report_id,
+        "team_name": team_name,
+        "zone": matched_zone,
+        "deployment": dep_res,
+        "message": f"Successfully dispatched rescue team to {report['location']} ({matched_zone})",
+        "stats": get_emergency_report_stats(),
+    })
+
+
+@app.route("/api/emergency/reports/<int:report_id>/delete", methods=["POST"])
+@staff_required
+def api_emergency_report_delete(report_id):
+    """Deletes/dismisses an invalid incident report."""
+    report = get_emergency_report_by_id(report_id)
+    if not report:
+        return jsonify({"ok": False, "error": "Report not found"}), 404
+    delete_emergency_report(report_id)
+    log_audit("DELETE_INCIDENT_REPORT", f"Deleted Citizen Incident #{report_id} ({report['disaster_type']} at {report['location']})")
+    return jsonify({"ok": True, "report_id": report_id, "stats": get_emergency_report_stats()})
 
 
 if __name__ == "__main__":
