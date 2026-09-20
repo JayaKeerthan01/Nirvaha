@@ -76,7 +76,7 @@ from database.db import (
     get_shelters_with_supplies, get_shelter_supplies, update_shelter_supply,
     update_shelter_occupancy, get_relief_volunteers,
     get_press_releases, get_press_release_by_id, add_press_release,
-    get_stakeholders_summary,
+    get_stakeholders_summary, enroll_whatsapp_subscriber,
 )
 from agents.weather_agent import weather_agent
 from agents.traffic_agent import traffic_agent
@@ -346,8 +346,17 @@ def signup():
 
         clean_phone = normalize_phone(phone)
         user_id = create_citizen(name, email, generate_password_hash(password), zone=zone, phone=clean_phone)
+
+        # Automatically enroll user's phone into the Official WhatsApp Broadcast Channel
+        try:
+            enroll_whatsapp_subscriber(user_id, name, clean_phone, zone=zone)
+            notification_service.dispatch_whatsapp_channel_welcome(name, clean_phone, zone=zone)
+            log_audit(user_id, name, "citizen", "WHATSAPP_CHANNEL_ENROLLED", "whatsapp_channel", clean_phone, f"Enrolled {clean_phone} into official WhatsApp disaster broadcast channel for {zone or 'All Districts'}", request.remote_addr)
+        except Exception as err:
+            logger.warning("WhatsApp channel auto-enrollment failed: %s", err)
+
         dev_code = issue_verification_code(user_id, email, name)
-        flash(f"Almost done, {name} — enter the verification code we sent to {email}.", "success")
+        flash(f"Account created, {name}! We've enrolled your number ({clean_phone}) into our Official WhatsApp Disaster Broadcast Channel. Please enter your email verification code below.", "success")
         return redirect(url_for("verify_email", email=email, dev_code=dev_code) if dev_code else url_for("verify_email", email=email))
 
     return render_template("signup.html", zones=get_zones())

@@ -294,6 +294,19 @@ def init_db(seed=True):
             published_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS whatsapp_subscribers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT NOT NULL,
+            phone TEXT UNIQUE NOT NULL,
+            zone TEXT,
+            channel_name TEXT DEFAULT 'Nirvaha Official Emergency Broadcast',
+            status TEXT DEFAULT 'Subscribed',
+            enrolled_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_alert_sent TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
         CREATE INDEX IF NOT EXISTS idx_users_zone ON users(zone);
         CREATE INDEX IF NOT EXISTS idx_alerts_zone ON alerts(zone);
@@ -307,6 +320,8 @@ def init_db(seed=True):
         CREATE INDEX IF NOT EXISTS idx_emergency_reports_status ON emergency_reports(status);
         CREATE INDEX IF NOT EXISTS idx_relief_supplies_shelter ON relief_supplies(shelter_id);
         CREATE INDEX IF NOT EXISTS idx_press_releases_published ON press_releases(published_at);
+        CREATE INDEX IF NOT EXISTS idx_whatsapp_subscribers_phone ON whatsapp_subscribers(phone);
+        CREATE INDEX IF NOT EXISTS idx_whatsapp_subscribers_zone ON whatsapp_subscribers(zone);
         """
     )
     conn.commit()
@@ -321,6 +336,7 @@ def init_db(seed=True):
         "ALTER TABLE users ADD COLUMN verification_expires TEXT",
         "ALTER TABLE users ADD COLUMN last_seen TEXT",
         "ALTER TABLE users ADD COLUMN phone TEXT",
+        "ALTER TABLE users ADD COLUMN whatsapp_subscribed INTEGER DEFAULT 1",
     ):
         try:
             cur.execute(statement)
@@ -614,6 +630,17 @@ def _seed_demo_data(conn):
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             demo_press,
         )
+
+    # Sync existing users into WhatsApp Official Broadcast Channel
+    try:
+        cur.execute("""
+            INSERT OR IGNORE INTO whatsapp_subscribers (user_id, name, phone, zone, channel_name, status)
+            SELECT id, name, phone, zone, 'Nirvaha Official Emergency Broadcast', 'Subscribed'
+            FROM users WHERE phone IS NOT NULL AND phone != ''
+        """)
+        conn.commit()
+    except Exception:
+        pass
 
     conn.commit()
 
@@ -1560,6 +1587,47 @@ def get_stakeholders_summary():
             "bulletin_route": "/press",
         },
     }
+
+
+# ----------------------------------------------- WhatsApp Broadcast Channel -----
+
+def enroll_whatsapp_subscriber(user_id, name, phone, zone=None, channel_name="Nirvaha Official Emergency Broadcast"):
+    """Enrolls a user's phone number into the official WhatsApp emergency broadcast channel."""
+    clean_p = str(phone).strip()
+    query(
+        """INSERT INTO whatsapp_subscribers (user_id, name, phone, zone, channel_name, status)
+           VALUES (?, ?, ?, ?, ?, 'Subscribed')
+           ON CONFLICT(phone) DO UPDATE SET
+             user_id = excluded.user_id,
+             name = excluded.name,
+             zone = excluded.zone,
+             status = 'Subscribed'""",
+        (user_id, name, clean_p, zone, channel_name),
+    )
+    return query("SELECT * FROM whatsapp_subscribers WHERE phone = ?", (clean_p,), fetchone=True)
+
+
+def get_whatsapp_subscribers(zone=None):
+    """Returns all active subscribers enrolled in the official WhatsApp broadcast channel."""
+    if zone:
+        return query(
+            "SELECT * FROM whatsapp_subscribers WHERE status = 'Subscribed' AND (LOWER(zone) = LOWER(?) OR zone IS NULL OR zone = '') ORDER BY name",
+            (zone,),
+        )
+    return query("SELECT * FROM whatsapp_subscribers WHERE status = 'Subscribed' ORDER BY zone, name")
+
+
+def get_whatsapp_subscribers_count():
+    row = query("SELECT COUNT(*) as c FROM whatsapp_subscribers WHERE status = 'Subscribed'", fetchone=True)
+    return row["c"] if row else 0
+
+
+def update_whatsapp_subscriber_alert_timestamp(phone):
+    query(
+        "UPDATE whatsapp_subscribers SET last_alert_sent = CURRENT_TIMESTAMP WHERE phone = ?",
+        (str(phone).strip(),),
+    )
+
 
 
 

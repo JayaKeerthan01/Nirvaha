@@ -10,7 +10,11 @@ from database.db import (
     get_press_releases,
     add_press_release,
     get_stakeholders_summary,
+    enroll_whatsapp_subscriber,
+    get_whatsapp_subscribers,
+    get_whatsapp_subscribers_count,
 )
+from api.notification_service import notification_service
 
 
 class TestExternalStakeholders(unittest.TestCase):
@@ -118,6 +122,48 @@ class TestExternalStakeholders(unittest.TestCase):
         # Stakeholders matrix page
         stk_res = self.client.get("/stakeholders")
         self.assertEqual(stk_res.status_code, 200)
+
+    def test_whatsapp_broadcast_channel_enrollment(self):
+        import time
+        t = int(time.time())
+        test_phone = f"+9198765{t % 100000:05d}"
+        test_email = f"wa_user_{t}@test.com"
+        test_name = f"WA Citizen {t}"
+
+        # 1. Direct enrollment test
+        sub = enroll_whatsapp_subscriber(None, test_name, test_phone, zone="Indiranagar")
+        self.assertIsNotNone(sub)
+        self.assertEqual(sub["phone"], test_phone)
+        self.assertEqual(sub["status"], "Subscribed")
+
+        # 2. Get subscribers query
+        subs_zone = get_whatsapp_subscribers(zone="Indiranagar")
+        self.assertTrue(any(s["phone"] == test_phone for s in subs_zone))
+        self.assertGreaterEqual(get_whatsapp_subscribers_count(), 1)
+
+        # 3. Welcome notification test
+        welcome_res = notification_service.dispatch_whatsapp_channel_welcome(test_name, test_phone, zone="Indiranagar")
+        self.assertTrue(welcome_res.get("ok"))
+        self.assertEqual(welcome_res.get("channel"), "whatsapp")
+
+        # 4. Signup flow auto-enrollment test
+        signup_phone = f"+9191234{t % 100000:05d}"
+        signup_email = f"signup_wa_{t}@example.com"
+        with self.client.session_transaction() as sess:
+            sess["csrf_token"] = "test-csrf-token"
+        res_signup = self.client.post("/signup", data={
+            "csrf_token": "test-csrf-token",
+            "name": f"Citizen {t}",
+            "email": signup_email,
+            "password": "Password123!",
+            "phone": signup_phone,
+            "zone": "Koramangala",
+        }, follow_redirects=False)
+        self.assertEqual(res_signup.status_code, 302)
+
+        # Verify enrolled into whatsapp_subscribers
+        enrolled = get_whatsapp_subscribers(zone="Koramangala")
+        self.assertTrue(any(s["phone"] == signup_phone for s in enrolled))
 
 
 if __name__ == "__main__":

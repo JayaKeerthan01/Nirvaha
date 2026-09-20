@@ -23,6 +23,8 @@ from database.db import (
     get_users_by_zone,
     get_all_contactable_users,
     get_recent_notifications,
+    get_whatsapp_subscribers,
+    update_whatsapp_subscriber_alert_timestamp,
 )
 
 logger = logging.getLogger(__name__)
@@ -333,13 +335,26 @@ class NotificationService:
 
         # 3. SMS & WhatsApp alerts to registered citizens in that zone
         sms_body = f"[NIRVAHA ALERT] HIGH RISK in {zone_name}: {hazard} detected ({score}%). Evacuate to safe zone immediately. Details: nirvaha.gov"
+        wa_body = f"🚨 *HIGH RISK HAZARD WARNING: {zone_name.upper()}*\n\n{hazard} detected with {score}% probability.\nRainfall: {rain}mm | Wind: {wind}km/h\n\nSeek higher ground or prepare for evacuation immediately. Follow official routes: https://nirvaha.gov"
         sent_phones = set()
         for c in citizens:
             phone = c.get("phone")
             if phone and phone not in sent_phones:
                 send_sms_alert(phone, sms_body, zone=zone_name)
-                send_whatsapp_alert(phone, sms_body, zone=zone_name)
+                send_whatsapp_alert(phone, wa_body, zone=zone_name)
                 sent_phones.add(phone)
+
+        # Dispatch to all enrolled Official WhatsApp Broadcast Channel subscribers in that zone
+        try:
+            wa_subscribers = get_whatsapp_subscribers(zone_name)
+            for sub in wa_subscribers:
+                sub_p = sub.get("phone")
+                if sub_p and sub_p not in sent_phones:
+                    send_whatsapp_alert(sub_p, wa_body, zone=zone_name)
+                    update_whatsapp_subscriber_alert_timestamp(sub_p)
+                    sent_phones.add(sub_p)
+        except Exception as e:
+            logger.warning("Error querying whatsapp subscribers: %s", e)
 
         district_phones = [
             f"+91-98800-{zone_name[:4].upper()}-01",
@@ -347,7 +362,7 @@ class NotificationService:
         for phone in district_phones:
             if phone not in sent_phones:
                 send_sms_alert(phone, sms_body, zone=zone_name)
-                send_whatsapp_alert(phone, sms_body, zone=zone_name)
+                send_whatsapp_alert(phone, wa_body, zone=zone_name)
                 sent_phones.add(phone)
 
         logger.info(
@@ -415,7 +430,7 @@ class NotificationService:
                 send_sms_alert(fallback_phone, sms_text, zone=zone)
                 results["sms"] += 1
 
-        # 4. WhatsApp Delivery (Twilio Sandbox)
+        # 4. WhatsApp Delivery (Twilio Sandbox & Channel Subscribers)
         if "whatsapp" in channels:
             wa_text = f"📢 *EMERGENCY BROADCAST: {title}*\n\n{message}"
             recipients = get_users_by_zone(zone) if zone else get_all_contactable_users()
@@ -426,6 +441,20 @@ class NotificationService:
                     send_whatsapp_alert(phone, wa_text, zone=zone)
                     sent_wa_phones.add(phone)
                     results["whatsapp"] += 1
+
+            # Dispatch to enrolled WhatsApp Broadcast Channel subscribers
+            try:
+                wa_subscribers = get_whatsapp_subscribers(zone)
+                for sub in wa_subscribers:
+                    sub_phone = sub.get("phone")
+                    if sub_phone and sub_phone not in sent_wa_phones:
+                        send_whatsapp_alert(sub_phone, wa_text, zone=zone)
+                        update_whatsapp_subscriber_alert_timestamp(sub_phone)
+                        sent_wa_phones.add(sub_phone)
+                        results["whatsapp"] += 1
+            except Exception as e:
+                logger.warning("Error fetching whatsapp subscribers: %s", e)
+
             if not sent_wa_phones:
                 fallback_phone = f"+919880012345"
                 send_whatsapp_alert(fallback_phone, wa_text, zone=zone)
@@ -438,6 +467,31 @@ class NotificationService:
             "dispatched": results,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
+
+    def dispatch_whatsapp_channel_welcome(self, name, phone, zone=None):
+        """Enrolls phone and dispatches welcome confirmation message to official WhatsApp channel."""
+        zone_str = zone or "City-Wide"
+        welcome_text = (
+            f"🎉 *NIRVAHA OFFICIAL DISASTER BROADCAST CHANNEL*\n\n"
+            f"Welcome to the Emergency Network, *{name}*!\n\n"
+            f"📱 *Registered Phone:* {phone}\n"
+            f"📍 *Monitored District:* {zone_str}\n"
+            f"🟢 *Status:* Enrolled in 24x7 WhatsApp Disaster Broadcasts\n\n"
+            f"You will receive verified emergency warnings, flood advisories, and safe evacuation corridors directly to this chat.\n\n"
+            f"📞 Emergency Helplines: 112 (Disaster/Police) | 108 (Ambulance)\n"
+            f"🌐 Citizen Portal: http://127.0.0.1:5000/citizen/home"
+        )
+        send_res = send_whatsapp_alert(phone, welcome_text, zone=zone)
+
+        _publish_event("whatsapp_channel_joined", {
+            "name": name,
+            "phone": phone,
+            "zone": zone_str,
+            "message": welcome_text,
+            "sender": "Nirvaha Command ✓",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        return send_res
 
 
 notification_service = NotificationService()

@@ -293,6 +293,20 @@
           receiveAlert(d);
         } catch (err) {}
       });
+      sseSource.addEventListener("whatsapp_channel_joined", (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          receiveAlert({
+            title: "WhatsApp Channel Enrolled",
+            message: d.message || "Enrolled in Nirvaha Official Emergency Broadcast Channel",
+            whatsapp_text: d.message,
+            sms_text: `[NIRVAHA] Welcome ${d.name || ""}! Your number ${d.phone || ""} has been enrolled in the Official WhatsApp Disaster Broadcast Channel.`,
+            zone: d.zone,
+            is_welcome: true,
+          });
+          switchTab("whatsapp");
+        } catch (err) {}
+      });
     } catch (err) {}
   }
 
