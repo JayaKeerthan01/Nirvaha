@@ -2753,38 +2753,60 @@ body.landing-wildfire {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 40px;
-  background: rgba(10, 14, 22, 0.82);
+  padding: 8px 32px;
+  min-height: 48px;
+  background: rgba(10, 14, 22, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.landing-wildfire .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
 .landing-wildfire .brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.landing-wildfire .brand-mark svg {
+  width: 14px;
+  height: 14px;
 }
 
 .landing-wildfire .brand-name {
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 15px;
   color: #ffffff;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
+  line-height: 1.1;
 }
 
 .landing-wildfire .brand-sub {
   color: #fb923c;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
+  line-height: 1.1;
+  margin-top: 1px;
 }
 
 .landing-wildfire .hero {
   position: relative;
   z-index: 1;
-  padding: 110px 40px 80px;
+  padding: 60px 40px 60px;
   max-width: 1100px;
   margin: 0 auto;
   text-align: left;
@@ -2893,10 +2915,10 @@ body.landing-wildfire {
   -webkit-backdrop-filter: blur(10px);
   color: #f1f5f9;
   font-weight: 600;
-  padding: 8px 18px;
-  border-radius: 8px;
+  padding: 5px 12px;
+  border-radius: 6px;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 11.5px;
   transition: all 0.2s ease;
 }
 
@@ -2910,18 +2932,18 @@ body.landing-wildfire {
   border: none;
   color: #ffffff;
   font-weight: 700;
-  padding: 9px 20px;
-  border-radius: 8px;
+  padding: 5px 14px;
+  border-radius: 6px;
   text-decoration: none;
-  font-size: 13px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 11.5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   transition: all 0.2s ease;
 }
 
 .landing-wildfire .btn-nav-signin:hover {
   background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
   color: #ffffff;
 }
 
