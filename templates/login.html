@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
-  <title>Officer Sign In — Nirvaha Tactical Command</title>
+  <title>Sign In — Nirvaha Command Grid</title>
 </head>
 <body>
   <div class="login-wrap login-wildfire">
@@ -30,14 +30,14 @@
 
     <!-- Tactical Glassmorphism Card -->
     <div class="login-card-wildfire">
+
+      <!-- Dynamic Header: updates dynamically for Admin / Sub Admin / Citizen -->
       <div class="card-header-inner">
-        <h2 class="card-title-text">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          Officer Sign In
+        <h2 class="card-title-text" id="roleTitleDisplay">
+          <span id="roleIconDisplay" style="display:inline-flex; align-items:center; justify-content:center; font-size:20px; line-height:1;">🛡️</span>
+          <span id="roleNameDisplay">Sub Admin Sign In</span>
         </h2>
-        <span class="card-title-badge">256-BIT ENCRYPTED</span>
+        <span class="card-title-badge" id="roleBadgeDisplay">TACTICAL DISPATCHER</span>
       </div>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -48,17 +48,17 @@
         {% endif %}
       {% endwith %}
 
-      <!-- 1-Click Role Quick Fill Selector -->
-      <div class="role-picker-container">
+      <!-- 1-Click Role / Account Type Selector -->
+      <div class="role-picker-container" style="margin-bottom: 22px;">
         <div class="role-picker-label">
-          <span>⚡ Select Access Role</span>
-          <span style="color:#fb923c; font-size:10px;">Click to autofill</span>
+          <span>⚡ Select Account Type</span>
+          <span style="color:#fb923c; font-size:10.5px; font-weight:700;">1-Click Autofill</span>
         </div>
         <div class="role-chips">
           <div class="role-chip" id="chip-admin" onclick="selectRole('admin')">
             <span class="role-chip-icon">👑</span>
             <span class="role-chip-title">Admin</span>
-            <span class="role-chip-badge">HQ Policy</span>
+            <span class="role-chip-badge">HQ System</span>
           </div>
           <div class="role-chip active" id="chip-subadmin" onclick="selectRole('subadmin')">
             <span class="role-chip-icon">🛡️</span>
@@ -78,7 +78,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="wildfire-field">
-          <label for="email">Authorized Email Address</label>
+          <label for="email" id="emailLabel">Authorized Email Address</label>
           <div class="wildfire-input-wrap">
             <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -91,7 +91,7 @@
               class="wildfire-input"
               required
               autofocus
-              placeholder="officer@disaster-response.local"
+              placeholder="subadmin@disaster-response.local"
               value="{{ email if email is defined and email != '' else 'subadmin@disaster-response.local' }}"
             >
           </div>
@@ -122,8 +122,8 @@
           </div>
         </div>
 
-        <button type="submit" class="btn-wildfire-submit">
-          <span>AUTHENTICATE & ENTER COMMAND GRID</span>
+        <button type="submit" class="btn-wildfire-submit" id="submitBtn">
+          <span id="submitBtnText">AUTHENTICATE AS SUB ADMIN</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>
@@ -149,7 +149,7 @@
             <td style="text-align:right; color:#cbd5e1;">subadmin123</td>
           </tr>
           <tr>
-            <td class="cred-role">Resident</td>
+            <td class="cred-role">Citizen</td>
             <td class="cred-val">resident@disaster-response.local</td>
             <td style="text-align:right; color:#cbd5e1;">resident123</td>
           </tr>
@@ -175,16 +175,34 @@
   <script>
     const rolePresets = {
       admin: {
+        title: "Admin Sign In",
+        icon: "👑",
+        badge: "HQ CLEARANCE",
         email: "admin@disaster-response.local",
-        pass: "admin123"
+        pass: "admin123",
+        btnText: "AUTHENTICATE AS ADMIN",
+        emailLabel: "Administrator Email Address",
+        emailPlaceholder: "admin@disaster-response.local"
       },
       subadmin: {
+        title: "Sub Admin Sign In",
+        icon: "🛡️",
+        badge: "TACTICAL DISPATCHER",
         email: "subadmin@disaster-response.local",
-        pass: "subadmin123"
+        pass: "subadmin123",
+        btnText: "AUTHENTICATE AS SUB ADMIN",
+        emailLabel: "Dispatcher / Officer Email Address",
+        emailPlaceholder: "subadmin@disaster-response.local"
       },
       resident: {
+        title: "Citizen Sign In",
+        icon: "👤",
+        badge: "COMMUNITY PORTAL",
         email: "resident@disaster-response.local",
-        pass: "resident123"
+        pass: "resident123",
+        btnText: "SIGN IN AS CITIZEN",
+        emailLabel: "Registered Resident Email",
+        emailPlaceholder: "resident@disaster-response.local"
       }
     };
 
@@ -197,8 +215,23 @@
       if (emailInput && passInput) {
         emailInput.value = preset.email;
         passInput.value = preset.pass;
+        emailInput.placeholder = preset.emailPlaceholder;
       }
 
+      // Update Dynamic Title & Badge & Button
+      const titleText = document.getElementById("roleNameDisplay");
+      const iconSpan = document.getElementById("roleIconDisplay");
+      const badgeSpan = document.getElementById("roleBadgeDisplay");
+      const btnSpan = document.getElementById("submitBtnText");
+      const emailLabel = document.getElementById("emailLabel");
+
+      if (titleText) titleText.textContent = preset.title;
+      if (iconSpan) iconSpan.textContent = preset.icon;
+      if (badgeSpan) badgeSpan.textContent = preset.badge;
+      if (btnSpan) btnSpan.textContent = preset.btnText;
+      if (emailLabel) emailLabel.textContent = preset.emailLabel;
+
+      // Update Active Chip Styling
       document.querySelectorAll(".role-chip").forEach(el => el.classList.remove("active"));
       const targetChip = document.getElementById("chip-" + role);
       if (targetChip) {
@@ -218,6 +251,18 @@
         btn.textContent = "👁️";
       }
     }
+
+    // Auto-detect role on initial load if email matches a specific role
+    document.addEventListener("DOMContentLoaded", () => {
+      const currentEmail = (document.getElementById("email")?.value || "").toLowerCase();
+      if (currentEmail.includes("admin@")) {
+        selectRole("admin");
+      } else if (currentEmail.includes("resident@") || currentEmail.includes("citizen")) {
+        selectRole("resident");
+      } else {
+        selectRole("subadmin");
+      }
+    });
   </script>
 </body>
 </html>
