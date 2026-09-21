@@ -2,16 +2,29 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
+  <title>Nirvaha — Autonomous Disaster Response & Command Grid</title>
 </head>
-<body>
+<body class="landing-wildfire">
+  <!-- Floating Ember Sparks Animation Particles -->
+  <div class="ember-particles" aria-hidden="true">
+    <div class="ember-particle" style="left: 8%; width: 4px; height: 4px; animation-delay: 0s; animation-duration: 7.5s;"></div>
+    <div class="ember-particle" style="left: 22%; width: 3px; height: 3px; animation-delay: 1.6s; animation-duration: 9s;"></div>
+    <div class="ember-particle" style="left: 38%; width: 5px; height: 5px; animation-delay: 3s; animation-duration: 6.8s;"></div>
+    <div class="ember-particle" style="left: 54%; width: 3px; height: 3px; animation-delay: 0.7s; animation-duration: 8.5s;"></div>
+    <div class="ember-particle" style="left: 70%; width: 4px; height: 4px; animation-delay: 2.3s; animation-duration: 7.2s;"></div>
+    <div class="ember-particle" style="left: 86%; width: 3px; height: 3px; animation-delay: 4.1s; animation-duration: 9.3s;"></div>
+    <div class="ember-particle" style="left: 30%; width: 4px; height: 4px; animation-delay: 5s; animation-duration: 8s;"></div>
+    <div class="ember-particle" style="left: 65%; width: 3px; height: 3px; animation-delay: 3.7s; animation-duration: 7.6s;"></div>
+  </div>
+
   <nav class="public-nav">
     <div class="brand">
       <div class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L3 6.5V12C3 17 6.75 21.5 12 23C17.25 21.5 21 17 21 12V6.5L12 2Z" stroke="#0B1220" stroke-width="1.8" stroke-linejoin="round"/>
-          <path d="M9 16C9 13.3 12 13.3 12 10.6C12 7.9 15 7.9 15 6.5" fill="none" stroke="#0B1220" stroke-width="1.5" stroke-linecap="round"/>
-          <circle cx="15" cy="6.5" r="1.15" fill="#0B1220"/>
-          <circle cx="9" cy="16" r="1" fill="#0B1220"/>
+          <path d="M12 2L3 6.5V12C3 17 6.75 21.5 12 23C17.25 21.5 21 17 21 12V6.5L12 2Z" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M9 16C9 13.3 12 13.3 12 10.6C12 7.9 15 7.9 15 6.5" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="15" cy="6.5" r="1.15" fill="#FFFFFF"/>
+          <circle cx="9" cy="16" r="1" fill="#FFFFFF"/>
         </svg>
       </div>
       <div>
@@ -19,14 +32,14 @@
         <div class="brand-sub">Response Command</div>
       </div>
     </div>
-    <div style="display:flex; gap:10px;">
-      <a href="{{ url_for('signup') }}" class="btn btn-ghost">Community sign up</a>
-      <a href="{{ url_for('login') }}" class="btn btn-ghost">Sign in</a>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <a href="{{ url_for('signup') }}" class="btn-nav-signup">Community Sign Up</a>
+      <a href="{{ url_for('login') }}" class="btn-nav-signin">Sign In ➔</a>
     </div>
   </nav>
 
   <section class="hero">
-    <div class="hero-eyebrow"><span class="live-dot"></span> FIVE AGENTS, ONE COMMON OPERATING PICTURE</div>
+    <div class="hero-eyebrow"><span class="wildfire-pulse-dot"></span> FIVE AGENTS, ONE COMMON OPERATING PICTURE</div>
     <h1>Coordinated disaster response, before the first siren sounds.</h1>
     <p>
       Nirvaha links weather forecasting, road-network status, hospital capacity,
@@ -34,36 +47,36 @@
       normally work in isolation can act on the same picture, in the same minute.
     </p>
     <div class="hero-actions">
-      <a href="{{ url_for('login') }}" class="btn btn-primary">Enter command dashboard →</a>
-      <a href="{{ url_for('signup') }}" class="btn btn-ghost">Or check risk near you →</a>
+      <a href="{{ url_for('login') }}" class="btn-hero-primary">Enter command dashboard →</a>
+      <a href="{{ url_for('signup') }}" class="btn-hero-ghost">Or check risk near you →</a>
     </div>
   </section>
 
   <div class="feature-grid">
     <div class="feature-card">
-      <div class="f-icon" style="background: var(--signal-info-dim);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5EA8FF" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+      <div class="f-icon" style="background: rgba(94, 168, 255, 0.16); border: 1px solid rgba(94, 168, 255, 0.35);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5EA8FF" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
       </div>
       <h3>Weather Agent</h3>
       <p>Reads live rainfall, wind, and humidity per zone and scores flood, cyclone, and landslide probability with a trained classifier.</p>
     </div>
     <div class="feature-card">
-      <div class="f-icon" style="background: var(--alert-warning-dim);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFB238" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <div class="f-icon" style="background: rgba(255, 178, 56, 0.16); border: 1px solid rgba(255, 178, 56, 0.35);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFB238" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       </div>
       <h3>Traffic Agent</h3>
       <p>Predicts congestion from time, location, and weather, flags blocked roads, and routes evacuations around them.</p>
     </div>
     <div class="feature-card">
-      <div class="f-icon" style="background: var(--alert-nominal-dim);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+      <div class="f-icon" style="background: rgba(45, 212, 191, 0.16); border: 1px solid rgba(45, 212, 191, 0.35);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
       </div>
       <h3>Hospital Agent</h3>
       <p>Tracks beds, ICU slots, doctors, and ambulances across every facility and ranks the best match for each affected zone.</p>
     </div>
     <div class="feature-card">
-      <div class="f-icon" style="background: var(--alert-critical-dim);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF5470" stroke-width="1.8"><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      <div class="f-icon" style="background: rgba(249, 115, 22, 0.16); border: 1px solid rgba(249, 115, 22, 0.35);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
       </div>
       <h3>Rescue Agent</h3>
       <p>Prioritizes zones by severity and population density, then assigns the nearest available team automatically.</p>
