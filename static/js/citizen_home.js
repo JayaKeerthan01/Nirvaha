@@ -125,12 +125,16 @@ function renderRiskList(zones) {
           <div style="font-size:13.5px; color:#475569; margin-bottom:6px;">
             ${w.prediction}
           </div>
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px; color:#64748b;">
-            <span>🌧️ <strong>${w.weather.rainfall_mm} mm</strong> rain</span>
-            <span>•</span>
-            <span>💨 <strong>${w.weather.wind_speed_kmh} km/h</strong> wind</span>
-            <span>•</span>
-            <span>🌡️ <strong>${w.weather.temperature_c}°C</strong></span>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12px; margin-top:8px;">
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:3px 10px; border-radius:8px; font-weight:600;">
+              <span>🌧️</span> <strong>${w.weather.rainfall_mm} mm</strong> rain
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; padding:3px 10px; border-radius:8px; font-weight:600;">
+              <span>💨</span> <strong>${w.weather.wind_speed_kmh} km/h</strong> wind
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#fffbeb; color:#b45309; border:1px solid #fde68a; padding:3px 10px; border-radius:8px; font-weight:600;">
+              <span>🌡️</span> <strong>${w.weather.temperature_c}°C</strong>
+            </span>
           </div>
         </div>
         <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
