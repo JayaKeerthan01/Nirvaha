@@ -2749,7 +2749,8 @@ body.landing-wildfire {
 .landing-wildfire .public-nav {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2762,13 +2763,26 @@ body.landing-wildfire {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.landing-wildfire .brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
+.landing-wildfire .public-nav .nav-left {
+  flex: 1;
 }
 
-.landing-wildfire .brand-mark {
+.landing-wildfire .public-nav .brand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.landing-wildfire .public-nav .brand-mark {
   width: 26px;
   height: 26px;
   border-radius: 6px;
@@ -2779,21 +2793,28 @@ body.landing-wildfire {
   flex-shrink: 0;
 }
 
-.landing-wildfire .brand-mark svg {
+.landing-wildfire .public-nav .brand-mark svg {
   width: 14px;
   height: 14px;
 }
 
-.landing-wildfire .brand-name {
+.landing-wildfire .public-nav .brand-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.landing-wildfire .public-nav .brand-name {
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
   font-size: 15px;
   color: #ffffff;
   letter-spacing: -0.2px;
   line-height: 1.1;
+  text-align: left;
 }
 
-.landing-wildfire .brand-sub {
+.landing-wildfire .public-nav .brand-sub {
   color: #fb923c;
   font-size: 9px;
   font-weight: 600;
@@ -2801,6 +2822,34 @@ body.landing-wildfire {
   text-transform: uppercase;
   line-height: 1.1;
   margin-top: 1px;
+  text-align: left;
+}
+
+.landing-wildfire .public-nav .nav-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-left: auto;
+  z-index: 2;
+}
+
+@media (max-width: 680px) {
+  .landing-wildfire .public-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 16px;
+  }
+  .landing-wildfire .public-nav .brand {
+    position: static;
+    transform: none;
+  }
+  .landing-wildfire .public-nav .nav-left {
+    display: none;
+  }
+  .landing-wildfire .public-nav .nav-actions {
+    margin-left: 0;
+  }
 }
 
 .landing-wildfire .hero {
