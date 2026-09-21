@@ -2,48 +2,222 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
+  <title>Officer Sign In — Nirvaha Tactical Command</title>
 </head>
 <body>
-  <div class="login-wrap">
-    <div class="login-card">
-      <h1>Sign in</h1>
-      <div class="sub">Authenticate to access the live command dashboard.</div>
+  <div class="login-wrap login-wildfire">
+    <!-- Floating Ember Sparks Animation Particles -->
+    <div class="ember-particles" aria-hidden="true">
+      <div class="ember-particle" style="left: 10%; width: 4px; height: 4px; animation-delay: 0s; animation-duration: 7s;"></div>
+      <div class="ember-particle" style="left: 24%; width: 3px; height: 3px; animation-delay: 1.8s; animation-duration: 9.5s;"></div>
+      <div class="ember-particle" style="left: 42%; width: 5px; height: 5px; animation-delay: 3.2s; animation-duration: 6.8s;"></div>
+      <div class="ember-particle" style="left: 58%; width: 3px; height: 3px; animation-delay: 0.6s; animation-duration: 8.2s;"></div>
+      <div class="ember-particle" style="left: 74%; width: 4px; height: 4px; animation-delay: 2.5s; animation-duration: 7.4s;"></div>
+      <div class="ember-particle" style="left: 88%; width: 3px; height: 3px; animation-delay: 4.3s; animation-duration: 9.1s;"></div>
+      <div class="ember-particle" style="left: 32%; width: 4px; height: 4px; animation-delay: 5.2s; animation-duration: 7.8s;"></div>
+      <div class="ember-particle" style="left: 66%; width: 3px; height: 3px; animation-delay: 3.9s; animation-duration: 7s;"></div>
+    </div>
+
+    <!-- Brand Header Above Card -->
+    <div class="wildfire-brand-header">
+      <div class="wildfire-badge-pill">
+        <span class="wildfire-pulse-dot"></span>
+        <span>Live Command Grid • 24/7 Rapid Response</span>
+      </div>
+      <h1 class="wildfire-brand-title">NIRVAHA COMMAND</h1>
+      <div class="wildfire-brand-subtitle">Autonomous Multi-Agency Disaster Response & Crisis Dispatch</div>
+    </div>
+
+    <!-- Tactical Glassmorphism Card -->
+    <div class="login-card-wildfire">
+      <div class="card-header-inner">
+        <h2 class="card-title-text">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Officer Sign In
+        </h2>
+        <span class="card-title-badge">256-BIT ENCRYPTED</span>
+      </div>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
-            <div class="{{ 'flash-error' if category == 'error' else 'flash-success' }}">{{ message }}</div>
+            <div class="{{ 'flash-error' if category == 'error' else 'flash-success' }}" style="margin-bottom: 16px; border-radius: 8px;">{{ message }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}
 
-      <form method="POST" action="{{ url_for('login') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="field">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required autofocus value="{{ email if email is defined and email != '' else 'subadmin@disaster-response.local' }}">
+      <!-- 1-Click Role Quick Fill Selector -->
+      <div class="role-picker-container">
+        <div class="role-picker-label">
+          <span>⚡ Select Access Role</span>
+          <span style="color:#fb923c; font-size:10px;">Click to autofill</span>
         </div>
-        <div class="field">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label for="password" style="margin-bottom:0;">Password</label>
-            <a href="{{ url_for('forgot_password') }}" style="font-size:12px; color:var(--signal-info);">Forgot password?</a>
+        <div class="role-chips">
+          <div class="role-chip" id="chip-admin" onclick="selectRole('admin')">
+            <span class="role-chip-icon">👑</span>
+            <span class="role-chip-title">Admin</span>
+            <span class="role-chip-badge">HQ Policy</span>
           </div>
-          <input type="password" id="password" name="password" required value="subadmin123" style="margin-top:6px;">
+          <div class="role-chip active" id="chip-subadmin" onclick="selectRole('subadmin')">
+            <span class="role-chip-icon">🛡️</span>
+            <span class="role-chip-title">Sub Admin</span>
+            <span class="role-chip-badge">Dispatcher</span>
+          </div>
+          <div class="role-chip" id="chip-resident" onclick="selectRole('resident')">
+            <span class="role-chip-icon">👤</span>
+            <span class="role-chip-title">Citizen</span>
+            <span class="role-chip-badge">Resident</span>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Sign in</button>
+      </div>
+
+      <!-- Login Form -->
+      <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="wildfire-field">
+          <label for="email">Authorized Email Address</label>
+          <div class="wildfire-input-wrap">
+            <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="wildfire-input"
+              required
+              autofocus
+              placeholder="officer@disaster-response.local"
+              value="{{ email if email is defined and email != '' else 'subadmin@disaster-response.local' }}"
+            >
+          </div>
+        </div>
+
+        <div class="wildfire-field">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 7px;">
+            <label for="password" style="margin-bottom:0;">Security Password</label>
+            <a href="{{ url_for('forgot_password') }}" style="font-size:12px; color:#fb923c; text-decoration:none; font-weight:500;">Forgot key?</a>
+          </div>
+          <div class="wildfire-input-wrap">
+            <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="wildfire-input"
+              required
+              value="subadmin123"
+              style="padding-right: 44px;"
+            >
+            <button type="button" class="password-toggle-btn" id="togglePasswordBtn" title="Show/Hide password" onclick="togglePasswordVisibility()">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-wildfire-submit">
+          <span>AUTHENTICATE & ENTER COMMAND GRID</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
       </form>
 
-      <div class="hint-box">
-        DEMO CREDENTIALS<br>
-        Admin — email: admin@disaster-response.local · password: admin123<br>
-        Sub Admin — email: subadmin@disaster-response.local · password: subadmin123<br>
-        Resident — email: resident@disaster-response.local · password: resident123<br>
-        <span style="color:var(--fog-400);">Admin can manage zones under /admin/zones; sub admin accounts cannot; residents only see the community portal.</span>
+      <!-- Verified Credentials Reference Drawer -->
+      <div class="credentials-drawer">
+        <div class="credentials-drawer-title">
+          <span>📋 DEMO CREDENTIALS REFERENCE</span>
+          <span style="font-size:10px; color:#94a3b8;">1-TAP AUTOFILL</span>
+        </div>
+        <table class="credentials-table">
+          <tr>
+            <td class="cred-role">Admin</td>
+            <td class="cred-val">admin@disaster-response.local</td>
+            <td style="text-align:right; color:#cbd5e1;">admin123</td>
+          </tr>
+          <tr>
+            <td class="cred-role">Sub Admin</td>
+            <td class="cred-val">subadmin@disaster-response.local</td>
+            <td style="text-align:right; color:#cbd5e1;">subadmin123</td>
+          </tr>
+          <tr>
+            <td class="cred-role">Resident</td>
+            <td class="cred-val">resident@disaster-response.local</td>
+            <td style="text-align:right; color:#cbd5e1;">resident123</td>
+          </tr>
+        </table>
       </div>
-      <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--fog-300);">
-        Community member? <a href="{{ url_for('signup') }}" style="color:var(--signal-info);">Create a free account</a>
+
+      <div class="wildfire-footer-links">
+        Community resident? <a href="{{ url_for('signup') }}">Create a free verified account →</a>
       </div>
     </div>
+
+    <!-- Emergency Helplines Strip -->
+    <div class="helplines-strip">
+      <span class="badge-hl">🚨 CRISIS HELPLINES:</span>
+      <span>Disaster / Police: <strong>112</strong></span>
+      <span class="sep">•</span>
+      <span>Ambulance: <strong>108</strong></span>
+      <span class="sep">•</span>
+      <span>Fire Brigade: <strong>101</strong></span>
+    </div>
   </div>
+
+  <script>
+    const rolePresets = {
+      admin: {
+        email: "admin@disaster-response.local",
+        pass: "admin123"
+      },
+      subadmin: {
+        email: "subadmin@disaster-response.local",
+        pass: "subadmin123"
+      },
+      resident: {
+        email: "resident@disaster-response.local",
+        pass: "resident123"
+      }
+    };
+
+    function selectRole(role) {
+      const preset = rolePresets[role];
+      if (!preset) return;
+
+      const emailInput = document.getElementById("email");
+      const passInput = document.getElementById("password");
+      if (emailInput && passInput) {
+        emailInput.value = preset.email;
+        passInput.value = preset.pass;
+      }
+
+      document.querySelectorAll(".role-chip").forEach(el => el.classList.remove("active"));
+      const targetChip = document.getElementById("chip-" + role);
+      if (targetChip) {
+        targetChip.classList.add("active");
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const passInput = document.getElementById("password");
+      const btn = document.getElementById("togglePasswordBtn");
+      if (!passInput || !btn) return;
+      if (passInput.type === "password") {
+        passInput.type = "text";
+        btn.textContent = "🙈";
+      } else {
+        passInput.type = "password";
+        btn.textContent = "👁️";
+      }
+    }
+  </script>
 </body>
 </html>
