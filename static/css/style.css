@@ -2574,6 +2574,18 @@ body.role-citizen {
   color: #fb923c;
 }
 
+select.wildfire-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 36px;
+}
+
+select.wildfire-input option {
+  background: #0d111a;
+  color: #f1f5f9;
+}
+
 .password-toggle-btn {
   position: absolute;
   right: 12px;

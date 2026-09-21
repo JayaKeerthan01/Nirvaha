@@ -2,72 +2,171 @@
 <html lang="en">
 <head>
   {% include "_head.html" %}
+  <title>Create Account — Nirvaha Community</title>
 </head>
 <body>
-  <div class="login-wrap">
-    <div class="login-card" style="max-width:420px;">
-      <h1>Create your account</h1>
-      <div class="sub">Free community access to live risk, evacuation, and hospital info.</div>
+  <div class="login-wrap login-wildfire">
+    <!-- Floating Ember Sparks Animation Particles -->
+    <div class="ember-particles" aria-hidden="true">
+      <div class="ember-particle" style="left: 10%; width: 4px; height: 4px; animation-delay: 0s; animation-duration: 7s;"></div>
+      <div class="ember-particle" style="left: 24%; width: 3px; height: 3px; animation-delay: 1.8s; animation-duration: 9.5s;"></div>
+      <div class="ember-particle" style="left: 42%; width: 5px; height: 5px; animation-delay: 3.2s; animation-duration: 6.8s;"></div>
+      <div class="ember-particle" style="left: 58%; width: 3px; height: 3px; animation-delay: 0.6s; animation-duration: 8.2s;"></div>
+      <div class="ember-particle" style="left: 74%; width: 4px; height: 4px; animation-delay: 2.5s; animation-duration: 7.4s;"></div>
+      <div class="ember-particle" style="left: 88%; width: 3px; height: 3px; animation-delay: 4.3s; animation-duration: 9.1s;"></div>
+      <div class="ember-particle" style="left: 32%; width: 4px; height: 4px; animation-delay: 5.2s; animation-duration: 7.8s;"></div>
+      <div class="ember-particle" style="left: 66%; width: 3px; height: 3px; animation-delay: 3.9s; animation-duration: 7s;"></div>
+    </div>
+
+    <!-- Brand Header Above Card -->
+    <div class="wildfire-brand-header">
+      <div class="wildfire-badge-pill">
+        <span class="wildfire-pulse-dot"></span>
+        <span>Community Access • Rapid Citizen Alert Network</span>
+      </div>
+      <h1 class="wildfire-brand-title">NIRVAHA COMMUNITY</h1>
+      <div class="wildfire-brand-subtitle">Real-Time Disaster Warnings, Safe Evacuations &amp; Hospital Bed Tracker</div>
+    </div>
+
+    <!-- Tactical Glassmorphism Card -->
+    <div class="login-card-wildfire" style="max-width: 470px; margin: 0 auto 24px;">
+
+      <div class="card-header-inner">
+        <h2 class="card-title-text">
+          <span style="display:inline-flex; align-items:center; justify-content:center; font-size:20px; line-height:1;">👤</span>
+          <span>Create Account</span>
+        </h2>
+        <span class="card-title-badge">RESIDENT ACCESS</span>
+      </div>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
-            <div class="{{ 'flash-error' if category == 'error' else 'flash-success' }}">{{ message }}</div>
+            <div class="{{ 'flash-error' if category == 'error' else 'flash-success' }}" style="margin-bottom: 16px; border-radius: 8px;">{{ message }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}
 
-      <form method="POST" action="{{ url_for('signup') }}">
+      <form method="POST" action="{{ url_for('signup') }}" id="signupForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="field">
+
+        <!-- Full Name -->
+        <div class="wildfire-field">
           <label for="name">Full Name</label>
-          <input type="text" id="name" name="name" required autofocus placeholder="e.g. Rahul Sharma" value="{{ name or '' }}">
-        </div>
-        <div class="field">
-          <label for="email">Email Address <span style="font-size:11px; color:var(--signal-info); font-weight:normal;">(For Verification &amp; Alerts)</span></label>
-          <input type="email" id="email" name="email" required placeholder="name@example.com" value="{{ email or '' }}">
-          <div style="font-size:11.5px; color:var(--fog-300); margin-top:4px;">
-            A real, permanent email address is required to receive your 6-digit verification code and official disaster alerts. Disposable or fake emails are automatically rejected.
+          <div class="wildfire-input-wrap">
+            <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input type="text" id="name" name="name" class="wildfire-input" required autofocus placeholder="e.g. Rahul Sharma" value="{{ name or '' }}">
           </div>
         </div>
-        <div class="field">
-          <label for="phone">Mobile Number <span style="font-size:11px; color:#10b981; font-weight:600;">(🟢 Auto-Enrolled in WhatsApp Disaster Broadcasts)</span></label>
-          <input type="tel" id="phone" name="phone" required placeholder="+91 98765 43210 or 10-digit number" value="{{ phone or '' }}">
-          <div style="font-size:11.5px; color:var(--fog-300); margin-top:4px;">
-            Critical life-safety warnings, flood advisories, and official WhatsApp broadcast alerts are sent directly to this number.
+
+        <!-- Email Address -->
+        <div class="wildfire-field">
+          <label for="email">Email Address <span style="font-size:11px; color:#38bdf8; font-weight:normal;">(For Verification &amp; Alerts)</span></label>
+          <div class="wildfire-input-wrap">
+            <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <input type="email" id="email" name="email" class="wildfire-input" required placeholder="name@example.com" value="{{ email or '' }}">
           </div>
-          <div style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); padding:3px 8px; border-radius:4px; margin-top:6px;">
-            <span>🟢 Official WhatsApp Channel:</span> <span>Nirvaha Command (+1 415 523 8886)</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required minlength="8" placeholder="At least 8 characters">
-        </div>
-        <div class="field">
-          <label for="zone">Your Home District / Area</label>
-          <select id="zone" name="zone">
-            <option value="">Select your local area (recommended)</option>
-            {% for z in zones %}
-              <option value="{{ z.name }}" {% if zone and z.name == zone %}selected{% endif %}>{{ z.name }}</option>
-            {% endfor %}
-          </select>
-          <div style="font-size:11.5px; color:var(--fog-300); margin-top:4px;">
-            Enables instant localized hazard warnings, closest shelter auto-assignment, and evacuation routing.
+          <div style="font-size:11px; color:rgba(255,255,255,0.55); margin-top:5px; line-height:1.4;">
+            A permanent email address is required to receive your 6-digit verification code and official disaster alerts.
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; height:44px; margin-top:8px;">Create Community Account</button>
+
+        <!-- Mobile Number -->
+        <div class="wildfire-field">
+          <label for="phone">Mobile Number <span style="font-size:11px; color:#34d399; font-weight:600;">(Auto-Enrolled in WhatsApp Alerts)</span></label>
+          <div class="wildfire-input-wrap">
+            <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <input type="tel" id="phone" name="phone" class="wildfire-input" required placeholder="+91 98765 43210 or 10-digit number" value="{{ phone or '' }}">
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:11px; color:#34d399; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); padding:5px 10px; border-radius:6px; margin-top:6px;">
+            <span>🟢 Official WhatsApp Channel:</span>
+            <span style="font-family:'JetBrains Mono', monospace; font-weight:600;">Nirvaha (+1 415 523 8886)</span>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="wildfire-field">
+          <label for="password">Create Password</label>
+          <div class="wildfire-input-wrap">
+            <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input type="password" id="password" name="password" class="wildfire-input" required minlength="8" placeholder="At least 8 characters">
+            <button type="button" class="password-toggle-btn" id="togglePasswordBtn" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">👁️</button>
+          </div>
+        </div>
+
+        <!-- Home District / Area -->
+        <div class="wildfire-field">
+          <label for="zone">Home District / Area</label>
+          <div class="wildfire-input-wrap">
+            <svg class="wildfire-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <select id="zone" name="zone" class="wildfire-input">
+              <option value="">Select your local area (recommended)</option>
+              {% for z in zones %}
+                <option value="{{ z.name }}" {% if zone and z.name == zone %}selected{% endif %}>{{ z.name }}</option>
+              {% endfor %}
+            </select>
+            <div style="position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; color:rgba(255,255,255,0.4); font-size:10px;">▼</div>
+          </div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.55); margin-top:5px;">
+            Enables instant localized hazard warnings &amp; closest shelter routing.
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-wildfire-submit" style="width:100%; margin-top:14px;">
+          <span>CREATE COMMUNITY ACCOUNT ➔</span>
+        </button>
       </form>
 
-      <div class="hint-box">
-        This creates a community account only — it can view risk levels,
-        evacuation routes, and hospital contacts. Response-team access is
-        provisioned separately by an administrator.
-      </div>
-      <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--fog-300);">
-        Already have an account? <a href="{{ url_for('login') }}" style="color:var(--signal-info);">Sign in</a>
+      <!-- Card Footer -->
+      <div style="margin-top:20px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); font-size:12px; color:rgba(255,255,255,0.55); text-align:center;">
+        <p style="margin:0 0 8px; line-height:1.4;">
+          This creates a community resident account. Tactical and administrative clearance is provisioned separately.
+        </p>
+        <p style="margin:0; font-size:13px; color:#cbd5e1;">
+          Already have an account? <a href="{{ url_for('login') }}" style="color:#fb923c; font-weight:600; text-decoration:none;">Sign in ➔</a>
+        </p>
       </div>
     </div>
+
+    <!-- Crisis Helplines Strip -->
+    <div class="helplines-strip">
+      <span class="badge-hl">🚨 CRISIS HELPLINES:</span>
+      <span>Disaster / Police: <strong>112</strong></span>
+      <span class="sep">•</span>
+      <span>Ambulance: <strong>108</strong></span>
+      <span class="sep">•</span>
+      <span>Fire Brigade: <strong>101</strong></span>
+    </div>
   </div>
+
+  <script>
+    function togglePasswordVisibility() {
+      const passInput = document.getElementById("password");
+      const btn = document.getElementById("togglePasswordBtn");
+      if (!passInput || !btn) return;
+      if (passInput.type === "password") {
+        passInput.type = "text";
+        btn.textContent = "🙈";
+      } else {
+        passInput.type = "password";
+        btn.textContent = "👁️";
+      }
+    }
+  </script>
 </body>
 </html>
