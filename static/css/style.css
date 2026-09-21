@@ -1907,39 +1907,53 @@ tr:last-child td {
    regardless of who's looking at it. */
 
 body.role-admin {
-  /* Indigo Command — violet-black, authoritative */
-  --ink-950: #0E0D1C;
-  --ink-900: #17152B;
-  --ink-850: #1E1B37;
-  --ink-800: #252140;
-  --line-700: #383159;
-  --line-600: #453C6E;
-  --fog-300: #ADA6C9;
-  --fog-400: #8A81AC;
-  --signal-100: #F0EDFB;
-  --signal-info: #8B7CFF;
-  --signal-info-dim: rgba(139, 124, 255, 0.15);
+  /* Tsunami Command Center — Dark Techy Oceanic Command */
+  --ink-950: #060c18;
+  --ink-900: rgba(10, 18, 36, 0.86);
+  --ink-850: rgba(14, 25, 48, 0.84);
+  --ink-800: rgba(20, 35, 66, 0.88);
+  --line-700: rgba(56, 189, 248, 0.22);
+  --line-600: rgba(56, 189, 248, 0.38);
+  --fog-300: #93c5fd;
+  --fog-400: #60a5fa;
+  --signal-100: #f0f9ff;
+  --signal-info: #38bdf8;
+  --signal-info-dim: rgba(56, 189, 248, 0.18);
+  --brand-glow: rgba(56, 189, 248, 0.4);
+  background-color: #060c18;
   background-image:
-    radial-gradient(circle at 15% 0%, rgba(139, 124, 255, 0.08), transparent 40%),
-    radial-gradient(circle at 85% 100%, rgba(45, 212, 191, 0.04), transparent 40%);
+    linear-gradient(180deg, rgba(6, 12, 24, 0.58) 0%, rgba(4, 8, 18, 0.74) 100%),
+    url('/static/img/admin_tsunami_bg.jpg');
+  background-size: cover;
+  background-position: center 25%;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: #f0f9ff;
 }
 
 body.role-operator {
-  /* Ember Field Ops — warm charcoal-black, active/urgent */
-  --ink-950: #1A1309;
-  --ink-900: #241B0E;
-  --ink-850: #2C2213;
-  --ink-800: #352A17;
-  --line-700: #4A3A1F;
-  --line-600: #5C4926;
-  --fog-300: #D4B896;
-  --fog-400: #B0906B;
-  --signal-100: #FBF1E0;
-  --signal-info: #FF8A3D;
-  --signal-info-dim: rgba(255, 138, 61, 0.15);
+  /* Field Ops Dispatch — Ground Rescue & Flash Flood Tactical */
+  --ink-950: #120e0b;
+  --ink-900: rgba(24, 19, 14, 0.86);
+  --ink-850: rgba(32, 25, 18, 0.84);
+  --ink-800: rgba(42, 33, 24, 0.88);
+  --line-700: rgba(245, 158, 11, 0.22);
+  --line-600: rgba(245, 158, 11, 0.38);
+  --fog-300: #fde68a;
+  --fog-400: #f59e0b;
+  --signal-100: #fffbeb;
+  --signal-info: #f59e0b;
+  --signal-info-dim: rgba(245, 158, 11, 0.18);
+  --brand-glow: rgba(245, 158, 11, 0.4);
+  background-color: #120e0b;
   background-image:
-    radial-gradient(circle at 15% 0%, rgba(255, 138, 61, 0.09), transparent 40%),
-    radial-gradient(circle at 85% 100%, rgba(255, 178, 56, 0.05), transparent 40%);
+    linear-gradient(180deg, rgba(18, 14, 10, 0.46) 0%, rgba(12, 9, 6, 0.68) 100%),
+    url('/static/img/operator_flood_bg.jpg');
+  background-size: cover;
+  background-position: center 30%;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: #fffbeb;
 }
 
 body.role-citizen {
@@ -1960,27 +1974,94 @@ body.role-citizen {
   color: #1e293b;
 }
 
-.app-shell {
-  background: var(--page-bg);
+/* Glassmorphic layouts for Admin & Subadmin */
+body.role-admin .app-shell,
+body.role-operator .app-shell,
+body.role-admin .main,
+body.role-operator .main {
+  background: transparent !important;
 }
 
-.sidebar {
-  background: var(--sidebar-bg);
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
+body.role-admin .sidebar {
+  background: rgba(6, 12, 24, 0.88) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45);
 }
 
-.brand-mark {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 22px var(--brand-glow);
+body.role-operator .sidebar {
+  background: rgba(18, 14, 10, 0.9) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(245, 158, 11, 0.2);
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45);
 }
 
-.main {
-  background: var(--page-bg);
+body.role-admin .topbar {
+  background: rgba(8, 15, 30, 0.84) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
-.topbar {
-  background: rgba(11, 18, 32, 0.42);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+body.role-operator .topbar {
+  background: rgba(22, 17, 12, 0.86) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+body.role-admin .card,
+body.role-admin .stat-card,
+body.role-admin .panel,
+body.role-admin .big-card,
+body.role-admin .fleet-tile {
+  background: rgba(10, 18, 36, 0.82) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+body.role-operator .card,
+body.role-operator .stat-card,
+body.role-operator .panel,
+body.role-operator .big-card,
+body.role-operator .fleet-tile {
+  background: rgba(24, 19, 14, 0.84) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.22) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+body.role-admin .nav-link:hover,
+body.role-admin .nav-link.active {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.32) !important;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.22);
+}
+
+body.role-operator .nav-link:hover,
+body.role-operator .nav-link.active {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #f59e0b !important;
+  border: 1px solid rgba(245, 158, 11, 0.32) !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.22);
+}
+
+body.role-admin .brand-mark {
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+}
+
+body.role-operator .brand-mark {
+  background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%) !important;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.45);
 }
 
 .nav-link:hover,
