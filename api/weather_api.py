@@ -57,8 +57,21 @@ def _drift(zone_name):
     return s
 
 
-def get_current_weather(zone_name, lat, lon):
-    """Returns dict: rainfall_mm, temperature_c, humidity_pct, wind_speed_kmh, source"""
+# In-memory weather cache to prevent repeated blocking external API calls
+_weather_cache = {}
+_CACHE_TTL_SEC = 45
+
+
+def get_current_weather(zone_name, lat, lon, force_refresh=False):
+    """Returns dict: rainfall_mm, temperature_c, humidity_pct, wind_speed_kmh, source.
+    Uses a 45-second in-memory cache to eliminate external network latency on frequent requests."""
+    now = time.time()
+    if not force_refresh and zone_name in _weather_cache:
+        entry = _weather_cache[zone_name]
+        if now - entry["timestamp"] < _CACHE_TTL_SEC:
+            return entry["data"]
+
+    result = None
     if Config.OPENWEATHER_API_KEY and requests is not None:
         try:
             resp = requests.get(
@@ -69,11 +82,11 @@ def get_current_weather(zone_name, lat, lon):
                     "appid": Config.OPENWEATHER_API_KEY,
                     "units": "metric",
                 },
-                timeout=5,
+                timeout=4,
             )
             data = resp.json()
             rain = data.get("rain", {}).get("1h", 0) * 24  # rough hourly->daily proxy
-            return {
+            result = {
                 "rainfall_mm": round(rain, 1),
                 "temperature_c": round(data["main"]["temp"], 1),
                 "humidity_pct": round(data["main"]["humidity"], 1),
@@ -81,21 +94,23 @@ def get_current_weather(zone_name, lat, lon):
                 "source": "openweathermap",
             }
         except Exception as exc:
-            # Previously silent — a dead/expired API key would fail over to
-            # simulation forever with zero visibility. Now at least logged.
             logger.warning(
                 "OpenWeather call failed for %s (%s); falling back to simulation",
                 zone_name, exc,
             )
 
-    s = _drift(zone_name)
-    return {
-        "rainfall_mm": round(s["rainfall_mm"], 1),
-        "temperature_c": round(s["temperature_c"], 1),
-        "humidity_pct": round(s["humidity_pct"], 1),
-        "wind_speed_kmh": round(s["wind_speed_kmh"], 1),
-        "source": "simulated",
-    }
+    if not result:
+        s = _drift(zone_name)
+        result = {
+            "rainfall_mm": round(s["rainfall_mm"], 1),
+            "temperature_c": round(s["temperature_c"], 1),
+            "humidity_pct": round(s["humidity_pct"], 1),
+            "wind_speed_kmh": round(s["wind_speed_kmh"], 1),
+            "source": "simulated",
+        }
+
+    _weather_cache[zone_name] = {"timestamp": now, "data": result}
+    return result
 
 
 def get_all_zones_weather():

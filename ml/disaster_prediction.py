@@ -47,10 +47,18 @@ def train(save=True):
     return model
 
 
+_cached_model = None
+
+
 def load_model():
+    global _cached_model
+    if _cached_model is not None:
+        return _cached_model
     if os.path.exists(Config.DISASTER_MODEL_PATH):
-        return joblib.load(Config.DISASTER_MODEL_PATH)
-    return train(save=True)
+        _cached_model = joblib.load(Config.DISASTER_MODEL_PATH)
+        return _cached_model
+    _cached_model = train(save=True)
+    return _cached_model
 
 
 def predict(rainfall_mm, temperature_c, humidity_pct, wind_speed_kmh, zone_density=0.5):

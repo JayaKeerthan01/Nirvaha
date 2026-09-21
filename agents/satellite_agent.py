@@ -12,6 +12,7 @@ import json
 import time
 import logging
 import urllib.request
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -20,51 +21,58 @@ class SatelliteAgent:
     name = "Satellite Agent"
 
     def __init__(self):
-        self.cached_timestamps = None
+        now = time.time()
+        fallback_time = int(now - (now % 600))
+        fallback_sat = int(now - (now % 1800))
+        host = "https://tilecache.rainviewer.com"
+        self.cached_timestamps = {
+            "host": host,
+            "radar_time": fallback_time,
+            "satellite_time": fallback_sat,
+            "radar_tile_template": f"{host}/v2/radar/{fallback_time}/256/{{z}}/{{x}}/{{y}}/2/1_1.png",
+            "satellite_infrared_template": f"{host}/v2/satellite/{fallback_sat}/256/{{z}}/{{x}}/{{y}}/0/0_0.png",
+        }
         self.last_fetch_time = 0
         self.cache_ttl = 300  # 5 minutes
+        self._fetching = False
 
-    def fetch_latest_radar_metadata(self):
-        """Fetches latest radar & satellite imagery frame timestamps from RainViewer API."""
-        now = time.time()
-        if self.cached_timestamps and (now - self.last_fetch_time) < self.cache_ttl:
-            return self.cached_timestamps
-
-        api_url = "https://api.rainviewer.com/public/weather-maps.json"
+    def _async_fetch_rainviewer(self):
         try:
+            api_url = "https://api.rainviewer.com/public/weather-maps.json"
             req = urllib.request.Request(
                 api_url,
                 headers={"User-Agent": "NirvahaDisasterResponse/1.0"},
             )
-            with urllib.request.urlopen(req, timeout=3.5) as resp:
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 radar_past = data.get("radar", {}).get("past", [])
                 sat_past = data.get("satellite", {}).get("infrared", [])
 
+                now = time.time()
                 latest_radar_time = radar_past[-1]["time"] if radar_past else int(now - (now % 600))
                 latest_sat_time = sat_past[-1]["time"] if sat_past else int(now - (now % 1800))
                 host = data.get("host", "https://tilecache.rainviewer.com")
 
-                result = {
+                self.cached_timestamps = {
                     "host": host,
                     "radar_time": latest_radar_time,
                     "satellite_time": latest_sat_time,
                     "radar_tile_template": f"{host}/v2/radar/{latest_radar_time}/256/{{z}}/{{x}}/{{y}}/2/1_1.png",
                     "satellite_infrared_template": f"{host}/v2/satellite/{latest_sat_time}/256/{{z}}/{{x}}/{{y}}/0/0_0.png",
                 }
-                self.cached_timestamps = result
                 self.last_fetch_time = now
-                return result
         except Exception as exc:
-            logger.warning(f"Live RainViewer satellite API query failed: {exc}. Using fallback radar timestamps.")
-            fallback_time = int(now - (now % 600))
-            return {
-                "host": "https://tilecache.rainviewer.com",
-                "radar_time": fallback_time,
-                "satellite_time": fallback_time,
-                "radar_tile_template": f"https://tilecache.rainviewer.com/v2/radar/{fallback_time}/256/{{z}}/{{x}}/{{y}}/2/1_1.png",
-                "satellite_infrared_template": f"https://tilecache.rainviewer.com/v2/satellite/{fallback_time}/256/{{z}}/{{x}}/{{y}}/0/0_0.png",
-            }
+            logger.warning(f"Background RainViewer satellite API query failed: {exc}")
+        finally:
+            self._fetching = False
+
+    def fetch_latest_radar_metadata(self):
+        """Returns radar & satellite metadata instantly without blocking the caller."""
+        now = time.time()
+        if (now - self.last_fetch_time) > self.cache_ttl and not self._fetching:
+            self._fetching = True
+            threading.Thread(target=self._async_fetch_rainviewer, daemon=True).start()
+        return self.cached_timestamps
 
     def get_satellite_overview(self, zones=None):
         """Returns structured satellite intelligence for the command dashboard."""

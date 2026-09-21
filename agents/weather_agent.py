@@ -19,6 +19,7 @@ Changelog (hardening pass):
     Config.ZONES list, so /admin/zones changes take effect immediately.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from api import weather_api
 from ml import disaster_prediction
 from database.db import log_alert, get_zone_state, set_zone_state, log_disaster_event, get_zones
@@ -97,7 +98,11 @@ class WeatherAgent:
                 logging.getLogger(__name__).warning("Failed to execute autonomous assignment: %s", e)
 
     def assess_all_zones(self):
-        return [self.assess_zone(z) for z in get_zones()]
+        zones = get_zones()
+        if len(zones) > 1:
+            with ThreadPoolExecutor(max_workers=min(len(zones), 6)) as pool:
+                return list(pool.map(self.assess_zone, zones))
+        return [self.assess_zone(z) for z in zones]
 
 
 weather_agent = WeatherAgent()

@@ -1579,4 +1579,4 @@ def stakeholders_overview():
 
 if __name__ == "__main__":
     init_db(seed=True)
-    app.run(debug=Config.DEBUG, host="0.0.0.0", port=5000)
+    app.run(debug=Config.DEBUG, host="0.0.0.0", port=5000, threaded=True)

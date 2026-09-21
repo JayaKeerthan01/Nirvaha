@@ -970,55 +970,34 @@ function initBroadcastModal() {
 // ---------------------------------------------------- Real-Time Push Stream ----
 
 function initEventSource() {
-  if (!window.EventSource) return;
+  function handleHighRisk(data) {
+    playEmergencyChime();
+    showToast(data.title, data.message, "High", 10000);
 
-  let es;
-  function connect() {
-    es = new EventSource("/api/notifications/stream");
-
-    es.addEventListener("high_risk_alert", (evt) => {
-      try {
-        const data = JSON.parse(evt.data);
-        playEmergencyChime();
-        showToast(data.title, data.message, "High", 10000);
-
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(data.title, {
-            body: data.message,
-            icon: "/static/img/brand_mark.png",
-          });
-        }
-        refreshDashboard();
-      } catch (e) {
-        console.error("SSE parse error:", e);
-      }
-    });
-
-    es.addEventListener("emergency_broadcast", (evt) => {
-      try {
-        const data = JSON.parse(evt.data);
-        playEmergencyChime();
-        showToast(`🚨 BROADCAST: ${data.title}`, data.message, "High", 12000);
-
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(`EMERGENCY BROADCAST: ${data.title}`, {
-            body: data.message,
-            icon: "/static/img/brand_mark.png",
-          });
-        }
-        refreshDashboard();
-      } catch (e) {
-        console.error("SSE broadcast error:", e);
-      }
-    });
-
-    es.onerror = () => {
-      es.close();
-      setTimeout(connect, 6000); // Reconnect in 6s
-    };
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(data.title, {
+        body: data.message,
+        icon: "/static/img/brand_mark.png",
+      });
+    }
+    refreshDashboard();
   }
 
-  connect();
+  function handleBroadcast(data) {
+    playEmergencyChime();
+    showToast(`🚨 BROADCAST: ${data.title}`, data.message, "High", 12000);
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(`EMERGENCY BROADCAST: ${data.title}`, {
+        body: data.message,
+        icon: "/static/img/brand_mark.png",
+      });
+    }
+    refreshDashboard();
+  }
+
+  window.addEventListener("nirvaha:high_risk_alert", (evt) => handleHighRisk(evt.detail));
+  window.addEventListener("nirvaha:emergency_broadcast", (evt) => handleBroadcast(evt.detail));
 }
 
 // ------------------------------------------------ Hospital Capacity Chart ----

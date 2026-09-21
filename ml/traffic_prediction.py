@@ -58,11 +58,19 @@ def train(save=True):
     return model, encoder
 
 
+_cached_bundle = None
+
+
 def load_model():
+    global _cached_bundle
+    if _cached_bundle is not None:
+        return _cached_bundle
     if os.path.exists(Config.TRAFFIC_MODEL_PATH):
         bundle = joblib.load(Config.TRAFFIC_MODEL_PATH)
-        return bundle["model"], bundle["encoder"]
-    return train(save=True)
+        _cached_bundle = (bundle["model"], bundle["encoder"])
+        return _cached_bundle
+    _cached_bundle = train(save=True)
+    return _cached_bundle
 
 
 def predict(hour, location, weather_condition):

@@ -285,12 +285,14 @@
         try {
           const d = JSON.parse(e.data);
           receiveAlert(d);
+          window.dispatchEvent(new CustomEvent("nirvaha:emergency_broadcast", { detail: d }));
         } catch (err) {}
       });
       sseSource.addEventListener("high_risk_alert", (e) => {
         try {
           const d = JSON.parse(e.data);
           receiveAlert(d);
+          window.dispatchEvent(new CustomEvent("nirvaha:high_risk_alert", { detail: d }));
         } catch (err) {}
       });
       sseSource.addEventListener("whatsapp_channel_joined", (e) => {
@@ -306,6 +308,14 @@
           });
           switchTab("whatsapp");
         } catch (err) {}
+      });
+
+      // Free browser HTTP/1.1 socket immediately on tab navigation
+      window.addEventListener("beforeunload", () => {
+        if (sseSource) {
+          try { sseSource.close(); } catch (err) {}
+          sseSource = null;
+        }
       });
     } catch (err) {}
   }

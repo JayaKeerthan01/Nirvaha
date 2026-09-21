@@ -14,6 +14,7 @@ import smtplib
 import queue
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from email.mime.text import MIMEText
 
@@ -34,6 +35,9 @@ _event_subscribers = []
 _subscriber_lock = threading.Lock()
 _recent_events_cache = []
 _MAX_EVENT_HISTORY = 50
+
+# Asynchronous worker pool for external alerts (SMS, WhatsApp, SMTP) to prevent blocking HTTP threads
+_notification_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="nirvaha-notify")
 
 
 def _publish_event(event_type, payload):
@@ -106,7 +110,7 @@ def send_alert_email(to_email, subject, body, zone=None):
     msg["To"] = to_email
 
     try:
-        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=10) as server:
+        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT, timeout=4) as server:
             server.starttls()
             pwd = str(Config.SMTP_PASSWORD).replace(" ", "").strip()
             server.login(Config.SMTP_USER, pwd)
@@ -168,7 +172,7 @@ def send_sms_alert(to_phone, message, zone=None):
                 "To": to_phone,
                 "Body": message,
             },
-            timeout=10,
+            timeout=4,
         )
         resp_data = resp.json() if resp.text else {}
         if resp.status_code not in (200, 201):
@@ -244,7 +248,7 @@ def send_whatsapp_alert(to_phone, message, zone=None):
                 "To": whatsapp_to,
                 "Body": body_text,
             },
-            timeout=10,
+            timeout=4,
         )
         resp_data = resp.json() if resp.text else {}
         if resp.status_code not in (200, 201):
@@ -314,63 +318,71 @@ class NotificationService:
             status="sent",
         )
 
-        # 2. Email alerts to registered citizens in that zone
-        citizens = get_users_by_zone(zone_name)
-        for c in citizens:
-            email = c.get("email")
-            if email:
-                email_body = (
-                    f"Dear {c.get('name', 'Resident')},\n\n"
-                    f"This is an automated emergency warning from Nirvaha Disaster Command.\n\n"
-                    f"Your registered district, {zone_name}, has entered HIGH RISK condition:\n"
-                    f"- Hazard: {hazard}\n"
-                    f"- Threat Level: HIGH ({score}%)\n"
-                    f"- Weather: {rain} mm rainfall, {wind} km/h wind\n\n"
-                    f"ACTION REQUIRED:\n"
-                    f"- Avoid low-lying roads and waterlogged intersections.\n"
-                    f"- Check your Nirvaha portal for the safest evacuation route and open hospitals.\n\n"
-                    f"Stay safe,\nNirvaha Emergency Operations"
-                )
-                send_alert_email(email, title, email_body, zone=zone_name)
-
-        # 3. SMS & WhatsApp alerts to registered citizens in that zone
-        sms_body = f"[NIRVAHA ALERT] HIGH RISK in {zone_name}: {hazard} detected ({score}%). Evacuate to safe zone immediately. Details: nirvaha.gov"
-        wa_body = f"🚨 *HIGH RISK HAZARD WARNING: {zone_name.upper()}*\n\n{hazard} detected with {score}% probability.\nRainfall: {rain}mm | Wind: {wind}km/h\n\nSeek higher ground or prepare for evacuation immediately. Follow official routes: https://nirvaha.gov"
-        sent_phones = set()
-        for c in citizens:
-            phone = c.get("phone")
-            if phone and phone not in sent_phones:
-                send_sms_alert(phone, sms_body, zone=zone_name)
-                send_whatsapp_alert(phone, wa_body, zone=zone_name)
-                sent_phones.add(phone)
-
-        # Dispatch to all enrolled Official WhatsApp Broadcast Channel subscribers in that zone
-        try:
-            wa_subscribers = get_whatsapp_subscribers(zone_name)
-            for sub in wa_subscribers:
-                sub_p = sub.get("phone")
-                if sub_p and sub_p not in sent_phones:
-                    send_whatsapp_alert(sub_p, wa_body, zone=zone_name)
-                    update_whatsapp_subscriber_alert_timestamp(sub_p)
-                    sent_phones.add(sub_p)
-        except Exception as e:
-            logger.warning("Error querying whatsapp subscribers: %s", e)
-
-        district_phones = [
-            f"+91-98800-{zone_name[:4].upper()}-01",
-        ]
-        for phone in district_phones:
-            if phone not in sent_phones:
-                send_sms_alert(phone, sms_body, zone=zone_name)
-                send_whatsapp_alert(phone, wa_body, zone=zone_name)
-                sent_phones.add(phone)
-
-        logger.info(
-            "Dispatched high-risk multi-channel alert (Push, Email, SMS, WhatsApp) for %s to %d citizens (sent to %d phones).",
-            zone_name,
-            len(citizens),
-            len(sent_phones),
+        # 2. Dispatch Email, SMS & WhatsApp in background thread so HTTP response returns instantly
+        _notification_executor.submit(
+            self._async_deliver_high_risk_external,
+            zone_name, hazard, score, rain, wind, title,
         )
+
+    def _async_deliver_high_risk_external(self, zone_name, hazard, score, rain, wind, title):
+        """Asynchronously sends emails, SMS, and WhatsApp alerts without blocking HTTP worker threads."""
+        try:
+            citizens = get_users_by_zone(zone_name)
+            for c in citizens:
+                email = c.get("email")
+                if email:
+                    email_body = (
+                        f"Dear {c.get('name', 'Resident')},\n\n"
+                        f"This is an automated emergency warning from Nirvaha Disaster Command.\n\n"
+                        f"Your registered district, {zone_name}, has entered HIGH RISK condition:\n"
+                        f"- Hazard: {hazard}\n"
+                        f"- Threat Level: HIGH ({score}%)\n"
+                        f"- Weather: {rain} mm rainfall, {wind} km/h wind\n\n"
+                        f"ACTION REQUIRED:\n"
+                        f"- Avoid low-lying roads and waterlogged intersections.\n"
+                        f"- Check your Nirvaha portal for the safest evacuation route and open hospitals.\n\n"
+                        f"Stay safe,\nNirvaha Emergency Operations"
+                    )
+                    send_alert_email(email, title, email_body, zone=zone_name)
+
+            sms_body = f"[NIRVAHA ALERT] HIGH RISK in {zone_name}: {hazard} detected ({score}%). Evacuate to safe zone immediately. Details: nirvaha.gov"
+            wa_body = f"🚨 *HIGH RISK HAZARD WARNING: {zone_name.upper()}*\n\n{hazard} detected with {score}% probability.\nRainfall: {rain}mm | Wind: {wind}km/h\n\nSeek higher ground or prepare for evacuation immediately. Follow official routes: https://nirvaha.gov"
+            sent_phones = set()
+            for c in citizens:
+                phone = c.get("phone")
+                if phone and phone not in sent_phones:
+                    send_sms_alert(phone, sms_body, zone=zone_name)
+                    send_whatsapp_alert(phone, wa_body, zone=zone_name)
+                    sent_phones.add(phone)
+
+            try:
+                wa_subscribers = get_whatsapp_subscribers(zone_name)
+                for sub in wa_subscribers:
+                    sub_p = sub.get("phone")
+                    if sub_p and sub_p not in sent_phones:
+                        send_whatsapp_alert(sub_p, wa_body, zone=zone_name)
+                        update_whatsapp_subscriber_alert_timestamp(sub_p)
+                        sent_phones.add(sub_p)
+            except Exception as e:
+                logger.warning("Error querying whatsapp subscribers: %s", e)
+
+            district_phones = [
+                f"+91-98800-{zone_name[:4].upper()}-01",
+            ]
+            for phone in district_phones:
+                if phone not in sent_phones:
+                    send_sms_alert(phone, sms_body, zone=zone_name)
+                    send_whatsapp_alert(phone, wa_body, zone=zone_name)
+                    sent_phones.add(phone)
+
+            logger.info(
+                "Dispatched high-risk multi-channel alert (Push, Email, SMS, WhatsApp) for %s to %d citizens (sent to %d phones).",
+                zone_name,
+                len(citizens),
+                len(sent_phones),
+            )
+        except Exception as exc:
+            logger.warning("Async high-risk notification error for %s: %s", zone_name, exc)
 
     def dispatch_broadcast(self, title, message, zone=None, channels=None, sender="Command Staff"):
         """Staff-initiated emergency broadcast across selected channels (push, email, sms, whatsapp)."""
@@ -481,7 +493,7 @@ class NotificationService:
             f"📞 Emergency Helplines: 112 (Disaster/Police) | 108 (Ambulance)\n"
             f"🌐 Citizen Portal: http://127.0.0.1:5000/citizen/home"
         )
-        send_res = send_whatsapp_alert(phone, welcome_text, zone=zone)
+        _notification_executor.submit(send_whatsapp_alert, phone, welcome_text, zone=zone)
 
         _publish_event("whatsapp_channel_joined", {
             "name": name,
@@ -491,7 +503,7 @@ class NotificationService:
             "sender": "Nirvaha Command ✓",
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         })
-        return send_res
+        return {"ok": True, "channel": "whatsapp", "status": "queued"}
 
 
 notification_service = NotificationService()
