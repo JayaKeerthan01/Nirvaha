@@ -1932,7 +1932,7 @@ body.role-admin {
 }
 
 body.role-operator {
-  /* Field Ops Dispatch — Ground Rescue & Flash Flood Tactical */
+  /* Field Ops Dispatch — Ground Impact & Disaster Recovery Tactical */
   --ink-950: #120e0b;
   --ink-900: rgba(24, 19, 14, 0.86);
   --ink-850: rgba(32, 25, 18, 0.84);
@@ -1947,10 +1947,10 @@ body.role-operator {
   --brand-glow: rgba(245, 158, 11, 0.4);
   background-color: #120e0b;
   background-image:
-    linear-gradient(180deg, rgba(18, 14, 10, 0.46) 0%, rgba(12, 9, 6, 0.68) 100%),
-    url('/static/img/operator_flood_bg.jpg');
+    linear-gradient(180deg, rgba(18, 14, 10, 0.48) 0%, rgba(10, 8, 6, 0.72) 100%),
+    url('/static/img/subadmin_disaster_bg.jpg');
   background-size: cover;
-  background-position: center 30%;
+  background-position: center 35%;
   background-attachment: fixed;
   background-repeat: no-repeat;
   color: #fffbeb;
