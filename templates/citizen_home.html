@@ -14,7 +14,7 @@
         <span id="citizen-network-status">Civic Alert Grid Active</span>
       </span>
       {% if home_zone %}
-      <span style="font-size:12px; color:#38bdf8; font-weight:600; background:rgba(56,189,248,0.12); padding:4px 10px; border-radius:9999px; border:1px solid rgba(56,189,248,0.25);">
+      <span style="font-size:12px; color:#0369a1; font-weight:600; background:#e0f2fe; padding:4px 10px; border-radius:9999px; border:1px solid #bae6fd;">
         📍 {{ home_zone }}
       </span>
       {% endif %}
@@ -27,7 +27,7 @@
       <span id="refreshIcon" style="display:inline-block; transition:transform 0.5s ease;">↻</span>
       <span>Check Live Status</span>
     </button>
-    <div style="font-size:11.5px; color:#94a3b8; text-align:right;" id="lastRefreshedTime">
+    <div style="font-size:11.5px; color:#64748b; text-align:right;" id="lastRefreshedTime">
       Refreshed just now
     </div>
   </div>
@@ -71,10 +71,10 @@
   <a href="{{ url_for('citizen_report') }}" class="citizen-action-card">
     <div>
       <div class="citizen-action-header">
-        <div class="action-icon-circle" style="background:rgba(239, 68, 68, 0.16); color:#f87171;">
+        <div class="action-icon-circle" style="background:#fef2f2; color:#dc2626; border:1px solid #fee2e2;">
           ⚠️
         </div>
-        <span class="action-badge" style="background:rgba(239, 68, 68, 0.15); color:#fca5a5; border:1px solid rgba(239, 68, 68, 0.3);">
+        <span class="action-badge" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;">
           Rapid Dispatch
         </span>
       </div>
@@ -83,7 +83,7 @@
         Report flash flooding, fallen trees, waterlogging, broken electrical cables, or stranded neighbors directly to response units.
       </p>
     </div>
-    <div class="citizen-action-link" style="color:#f87171;">
+    <div class="citizen-action-link" style="color:#dc2626;">
       Submit Report in 30 Seconds ➔
     </div>
   </a>
@@ -92,10 +92,10 @@
   <a href="{{ url_for('citizen_evacuation') }}" class="citizen-action-card">
     <div>
       <div class="citizen-action-header">
-        <div class="action-icon-circle" style="background:rgba(16, 185, 129, 0.16); color:#34d399;">
+        <div class="action-icon-circle" style="background:#f0fdf4; color:#16a34a; border:1px solid #dcfce7;">
           🏃
         </div>
-        <span class="action-badge" style="background:rgba(16, 185, 129, 0.15); color:#6ee7b7; border:1px solid rgba(16, 185, 129, 0.3);">
+        <span class="action-badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0;">
           Live Shelters
         </span>
       </div>
@@ -104,7 +104,7 @@
         Find designated dry relief centers, real-time available bed counts, food supplies, and safe transit routes clear of waterlogging.
       </p>
     </div>
-    <div class="citizen-action-link" style="color:#34d399;">
+    <div class="citizen-action-link" style="color:#15803d;">
       Find Nearest Shelter Route ➔
     </div>
   </a>
@@ -113,10 +113,10 @@
   <a href="{{ url_for('citizen_hospitals') }}" class="citizen-action-card">
     <div>
       <div class="citizen-action-header">
-        <div class="action-icon-circle" style="background:rgba(56, 189, 248, 0.16); color:#38bdf8;">
+        <div class="action-icon-circle" style="background:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;">
           🏥
         </div>
-        <span class="action-badge" style="background:rgba(56, 189, 248, 0.15); color:#7dd3fc; border:1px solid rgba(56, 189, 248, 0.3);">
+        <span class="action-badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;">
           Bed Tracker
         </span>
       </div>
@@ -125,7 +125,7 @@
         Locate functioning hospitals with available emergency triage, ICU beds, oxygen, and emergency ambulance contacts.
       </p>
     </div>
-    <div class="citizen-action-link" style="color:#38bdf8;">
+    <div class="citizen-action-link" style="color:#0284c7;">
       View Operational Hospitals ➔
     </div>
   </a>
@@ -134,10 +134,10 @@
   <a href="{{ url_for('citizen_chat') }}" class="citizen-action-card">
     <div>
       <div class="citizen-action-header">
-        <div class="action-icon-circle" style="background:rgba(168, 85, 247, 0.16); color:#c084fc;">
+        <div class="action-icon-circle" style="background:#faf5ff; color:#7e22ce; border:1px solid #f3e8ff;">
           💬
         </div>
-        <span class="action-badge" style="background:rgba(168, 85, 247, 0.15); color:#d8b4fe; border:1px solid rgba(168, 85, 247, 0.3);">
+        <span class="action-badge" style="background:#faf5ff; color:#7e22ce; border:1px solid #e9d5ff;">
           24/7 AI Guide
         </span>
       </div>
@@ -146,7 +146,7 @@
         Ask natural questions: "Is Bellandur road submerged?", "What should I pack for cyclone warning?", or get localized advice.
       </p>
     </div>
-    <div class="citizen-action-link" style="color:#c084fc;">
+    <div class="citizen-action-link" style="color:#7e22ce;">
       Open Citizen Assistant ➔
     </div>
   </a>
@@ -169,7 +169,7 @@
   </div>
 
   <div id="risk-list">
-    <div class="empty-state" style="padding: 24px; text-align:center; color:#94a3b8;">
+    <div class="empty-state" style="padding: 24px; text-align:center; color:#64748b;">
       Scanning neighborhood sensor telemetry…
     </div>
   </div>
@@ -179,14 +179,14 @@
 <div class="citizen-checklist-card">
   <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
     <div>
-      <h2 style="font-family:'Outfit', sans-serif; font-size:18px; font-weight:700; color:#ffffff; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
+      <h2 style="font-family:'Outfit', sans-serif; font-size:18px; font-weight:700; color:#0f172a; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
         <span>🎒</span> Household Disaster Readiness Checklist
       </h2>
-      <p style="font-size:13px; color:#94a3b8; margin:0;">
+      <p style="font-size:13px; color:#64748b; margin:0;">
         Prepare these essentials before severe storms or flooding reach your district. Checked items save automatically.
       </p>
     </div>
-    <span id="checklist-progress-text" style="font-size:12px; font-weight:700; color:#34d399; background:rgba(16,185,129,0.12); padding:4px 10px; border-radius:9999px; border:1px solid rgba(16,185,129,0.25);">
+    <span id="checklist-progress-text" style="font-size:12px; font-weight:700; color:#15803d; background:#f0fdf4; padding:4px 10px; border-radius:9999px; border:1px solid #bbf7d0;">
       0 / 5 Ready
     </span>
   </div>
@@ -224,15 +224,15 @@
   <div style="display:flex; align-items:center; gap:12px;">
     <span style="font-size:24px; line-height:1;">📱</span>
     <div>
-      <div style="font-size:13.5px; font-weight:700; color:#34d399;">
+      <div style="font-size:13.5px; font-weight:700; color:#15803d;">
         Official WhatsApp Community Broadcast Channel Active
       </div>
-      <div style="font-size:12px; color:#cbd5e1; margin-top:2px;">
+      <div style="font-size:12.5px; color:#475569; margin-top:2px;">
         Critical life-safety advisories, evacuation alarms, and shelter updates are pushed directly to registered mobile numbers.
       </div>
     </div>
   </div>
-  <div style="display:inline-flex; align-items:center; gap:8px; font-size:12px; color:#34d399; background:rgba(16,185,129,0.15); padding:6px 12px; border-radius:8px; border:1px solid rgba(16,185,129,0.3); font-family:'JetBrains Mono', monospace; font-weight:600;">
+  <div style="display:inline-flex; align-items:center; gap:8px; font-size:12px; color:#15803d; background:#ffffff; padding:6px 14px; border-radius:8px; border:1px solid #86efac; font-family:'JetBrains Mono', monospace; font-weight:600; box-shadow:0 1px 3px rgba(16,185,129,0.1);">
     <span>🟢 Nirvaha (+1 415 523 8886)</span>
   </div>
 </div>

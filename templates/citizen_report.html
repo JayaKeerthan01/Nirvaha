@@ -5,12 +5,12 @@
 {% block content %}
 <div class="citizen-card" style="max-width: 680px; margin: 0 auto; padding: 28px;">
   <div style="display:flex; align-items:center; gap:12px; margin-bottom: 20px;">
-    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 84, 112, 0.15); display: flex; align-items: center; justify-content: center; font-size: 22px;">
+    <div style="width: 44px; height: 44px; border-radius: 12px; background: #fee2e2; border: 1px solid #fecaca; display: flex; align-items: center; justify-content: center; font-size: 22px;">
       🚨
     </div>
     <div>
-      <h1 style="font-size: 22px; font-weight: 700; margin: 0; color: #FFFFFF;">Report Emergency Incident</h1>
-      <p style="font-size: 13px; color: #8F9CAE; margin: 4px 0 0 0;">
+      <h1 style="font-size: 22px; font-weight: 700; margin: 0; color: #0f172a;">Report Emergency Incident</h1>
+      <p style="font-size: 13px; color: #64748b; margin: 4px 0 0 0;">
         Emergency dispatchers and field rescue teams receive citizen incident reports in real time.
       </p>
     </div>
@@ -20,22 +20,22 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
       <div>
-        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Your Name *</label>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:#334155; margin-bottom:6px;">Your Name *</label>
         <input type="text" name="reporter_name" required placeholder="e.g. Ramesh Kumar"
-               style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+               style="width:100%; padding:10px 14px; border-radius:8px; background:#ffffff; border:1px solid #cbd5e1; color:#0f172a; font-size:14px;">
       </div>
       <div>
-        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Mobile Phone (for callbacks) *</label>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:#334155; margin-bottom:6px;">Mobile Phone (for callbacks) *</label>
         <input type="tel" name="reporter_phone" required placeholder="e.g. +91 98765 43210"
-               style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+               style="width:100%; padding:10px 14px; border-radius:8px; background:#ffffff; border:1px solid #cbd5e1; color:#0f172a; font-size:14px;">
       </div>
     </div>
 
     <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
       <div>
-        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Incident Type *</label>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:#334155; margin-bottom:6px;">Incident Type *</label>
         <select name="disaster_type" required
-                style="width:100%; padding:10px 14px; border-radius:8px; background:#161F30; border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+                style="width:100%; padding:10px 14px; border-radius:8px; background:#ffffff; border:1px solid #cbd5e1; color:#0f172a; font-size:14px;">
           <option value="Flooding / Waterlogging">🌊 Flooding / Severe Waterlogging</option>
           <option value="Fallen Tree / Power Hazard">⚡ Fallen Tree / Live Electric Wire</option>
           <option value="Structural Damage / Collapse">🏚️ Building / Wall Collapse</option>
@@ -47,9 +47,9 @@
       </div>
 
       <div>
-        <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Affected Zone / Locality *</label>
+        <label style="display:block; font-size:12.5px; font-weight:600; color:#334155; margin-bottom:6px;">Affected Zone / Locality *</label>
         <input list="zones-list" name="location" required placeholder="e.g. Bellandur, Outer Ring Road"
-               style="width:100%; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px;">
+               style="width:100%; padding:10px 14px; border-radius:8px; background:#ffffff; border:1px solid #cbd5e1; color:#0f172a; font-size:14px;">
         <datalist id="zones-list">
           {% for z in zones %}
             <option value="{{ z.name }}">
@@ -60,49 +60,49 @@
 
     <div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <label style="font-size:12px; font-weight:600; color:#CAD5E2;">GPS Geolocation (Optional)</label>
-        <button type="button" id="get-gps-btn" class="btn btn-ghost" style="padding:4px 10px; font-size:11px; gap:4px;">
+        <label style="font-size:12.5px; font-weight:600; color:#334155;">GPS Geolocation (Optional)</label>
+        <button type="button" id="get-gps-btn" class="btn btn-ghost" style="padding:4px 10px; font-size:11px; gap:4px; color:#0284c7; border:1px solid #bae6fd; background:#f0f9ff;">
           📍 Get Current Location
         </button>
       </div>
       <div style="display:flex; gap:12px;">
         <input type="text" id="gps-lat" name="lat" placeholder="Latitude (e.g. 12.9260)"
-               style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:#CAD5E2; font-size:13px;" readonly>
+               style="flex:1; padding:8px 12px; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; color:#334155; font-size:13px;" readonly>
         <input type="text" id="gps-lon" name="lon" placeholder="Longitude (e.g. 77.6790)"
-               style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:#CAD5E2; font-size:13px;" readonly>
+               style="flex:1; padding:8px 12px; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; color:#334155; font-size:13px;" readonly>
       </div>
-      <div id="gps-status" style="font-size:11px; color:#00EB96; margin-top:4px; display:none;"></div>
+      <div id="gps-status" style="font-size:11px; color:#15803d; margin-top:4px; display:none;"></div>
     </div>
 
     <div>
-      <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Severity Assessment</label>
+      <label style="display:block; font-size:12.5px; font-weight:600; color:#334155; margin-bottom:6px;">Severity Assessment</label>
       <div style="display:flex; gap:12px;">
-        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:rgba(255,84,112,0.1); border:1px solid rgba(255,84,112,0.3); color:#FF5470; cursor:pointer;">
-          <input type="radio" name="severity" value="Critical" style="accent-color:#FF5470;">
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; cursor:pointer;">
+          <input type="radio" name="severity" value="Critical" style="accent-color:#dc2626;">
           <span style="font-size:13px; font-weight:600;">Critical (Life Threat)</span>
         </label>
-        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:rgba(255,170,0,0.1); border:1px solid rgba(255,170,0,0.3); color:#FFAA00; cursor:pointer;">
-          <input type="radio" name="severity" value="High" checked style="accent-color:#FFAA00;">
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:#fffbeb; border:1px solid #fde68a; color:#b45309; cursor:pointer;">
+          <input type="radio" name="severity" value="High" checked style="accent-color:#d97706;">
           <span style="font-size:13px; font-weight:600;">High (Serious Hazard)</span>
         </label>
-        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:#CAD5E2; cursor:pointer;">
-          <input type="radio" name="severity" value="Moderate" style="accent-color:#CAD5E2;">
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; color:#475569; cursor:pointer;">
+          <input type="radio" name="severity" value="Moderate" style="accent-color:#64748b;">
           <span style="font-size:13px; font-weight:600;">Moderate (Caution)</span>
         </label>
       </div>
     </div>
 
     <div>
-      <label style="display:block; font-size:12px; font-weight:600; color:#CAD5E2; margin-bottom:6px;">Incident Description & Details *</label>
+      <label style="display:block; font-size:12.5px; font-weight:600; color:#334155; margin-bottom:6px;">Incident Description & Details *</label>
       <textarea name="description" rows="4" required placeholder="Describe what you see: water depth, blocked landmark, stranded people, or immediate dangers..."
-                style="width:100%; padding:12px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#FFF; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+                style="width:100%; padding:12px; border-radius:8px; background:#ffffff; border:1px solid #cbd5e1; color:#0f172a; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
     </div>
 
     <div style="margin-top: 8px;">
-      <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:15px; font-weight:600; background:#FF5470; border:none; color:#FFF; border-radius:8px; cursor:pointer;">
+      <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:15px; font-weight:600; background:#dc2626; border:none; color:#FFF; border-radius:8px; cursor:pointer; box-shadow:0 2px 8px rgba(220,38,38,0.25);">
         🚨 Submit Urgent Emergency Report
       </button>
-      <p style="font-size:11px; color:#8F9CAE; text-align:center; margin-top:8px;">
+      <p style="font-size:11px; color:#64748b; text-align:center; margin-top:8px;">
         For immediate police or medical life-threats, dial <strong>112</strong> or <strong>108</strong> directly.
       </p>
     </div>
