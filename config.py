@@ -26,6 +26,7 @@ class Config:
     # Werkzeug debugger (arbitrary code execution) reachable if this is ever
     # exposed beyond localhost. Now off unless explicitly enabled.
     DEBUG = os.environ.get("FLASK_DEBUG", "0") == "1"
+    TEMPLATES_AUTO_RELOAD = True
 
     # Hardened session cookies. SECURE is left off by default because the
     # dev server runs on plain http://127.0.0.1 — set SESSION_COOKIE_SECURE=1
