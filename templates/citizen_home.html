@@ -1,48 +1,239 @@
 {% extends "citizen_base.html" %}
-{% block title %}Community Safety{% endblock %}
+{% block title %}Community Safety &amp; Live Risk Radar{% endblock %}
 
 {% block content %}
-<!-- DYNAMIC EMERGENCY ALERT BANNER -->
-<div id="citizen-emergency-banner" style="display:none; margin-bottom:20px;"></div>
+<!-- EMERGENCY SEVERE ADVISORY BANNER (Dynamically shown if High/Medium risk) -->
+<div id="citizen-emergency-banner" style="display:none; margin-bottom: 22px;"></div>
 
-<div class="citizen-hero">
-  <h1>Current risk near you</h1>
-  <p>Monitored in real-time. Live district telemetry refreshed every {{ (poll_interval_ms / 1000) | int }} seconds.</p>
-</div>
-
-<div class="big-card" style="margin-bottom:18px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <div class="section-title" style="margin-bottom:0;">District Risk &amp; Hazard Radar</div>
-    {% if home_zone %}<span class="badge badge-info">Home: {{ home_zone }}</span>{% endif %}
-  </div>
-  <div id="risk-list">
-    <div class="empty-state">Scanning live weather sensors…</div>
-  </div>
-</div>
-
-<!-- Quick Community Actions -->
-<div class="big-card" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
-  <a href="{{ url_for('citizen_evacuation') }}" class="btn btn-primary" style="gap:6px;">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-    Find Evacuation Route &amp; Relief Shelter
-  </a>
-  <a href="{{ url_for('citizen_hospitals') }}" class="btn btn-ghost" style="gap:6px;">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
-    Safe Operational Hospitals
-  </a>
-  <a href="{{ url_for('citizen_chat') }}" class="btn btn-ghost" style="gap:6px;">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    Ask Nirvaha AI Assistant
-  </a>
-</div>
-
-<!-- Emergency Hotlines Quick Strip -->
-<div class="card" style="background:rgba(15,23,42,0.6); border:1px solid var(--border-subtle);">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-    <div style="font-size:13px; color:var(--fog-300);">
-      <strong>Emergency Hotlines:</strong> Ambulance: <span class="mono" style="color:#FFF;">108</span> &bull; Police: <span class="mono" style="color:#FFF;">100</span> &bull; State Disaster Control: <span class="mono" style="color:#FFF;">1077</span>
+<!-- WELCOME HERO & LIVE STATUS -->
+<div class="citizen-welcome-hero">
+  <div class="welcome-text">
+    <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:8px;">
+      <span class="status-live-pill">
+        <span class="status-live-dot"></span>
+        <span id="citizen-network-status">Civic Alert Grid Active</span>
+      </span>
+      {% if home_zone %}
+      <span style="font-size:12px; color:#38bdf8; font-weight:600; background:rgba(56,189,248,0.12); padding:4px 10px; border-radius:9999px; border:1px solid rgba(56,189,248,0.25);">
+        📍 {{ home_zone }}
+      </span>
+      {% endif %}
     </div>
-    <div class="zone-meta" style="color:var(--signal-info);">Stay tuned to local radio 102.9 FM for civil defense broadcasts</div>
+    <h1>Hello, {{ session.get('user_name') or current_user or 'Resident' }}</h1>
+    <p>Real-time neighborhood safety, weather telemetry, and emergency shelter status.</p>
+  </div>
+  <div class="welcome-meta-pills">
+    <button type="button" class="btn-refresh-telemetry" id="btnManualRefresh" onclick="manualRefreshRisk()" title="Refresh telemetry">
+      <span id="refreshIcon" style="display:inline-block; transition:transform 0.5s ease;">↻</span>
+      <span>Check Live Status</span>
+    </button>
+    <div style="font-size:11.5px; color:#94a3b8; text-align:right;" id="lastRefreshedTime">
+      Refreshed just now
+    </div>
+  </div>
+</div>
+
+<!-- QUICK EMERGENCY SOS BAR (One-Tap Dialing) -->
+<div class="emergency-hotlines-bar">
+  <a href="tel:112" class="hotline-item" title="Call National Emergency 112">
+    <span class="hotline-icon">🚨</span>
+    <div class="hotline-details">
+      <span class="hotline-title">Police / Disaster</span>
+      <span class="hotline-number">112</span>
+    </div>
+  </a>
+  <a href="tel:108" class="hotline-item" title="Call Emergency Ambulance 108">
+    <span class="hotline-icon">🚑</span>
+    <div class="hotline-details">
+      <span class="hotline-title">Medical Ambulance</span>
+      <span class="hotline-number">108</span>
+    </div>
+  </a>
+  <a href="tel:101" class="hotline-item" title="Call Fire &amp; Rescue 101">
+    <span class="hotline-icon">🚒</span>
+    <div class="hotline-details">
+      <span class="hotline-title">Fire Brigade</span>
+      <span class="hotline-number">101</span>
+    </div>
+  </a>
+  <a href="tel:1077" class="hotline-item" title="Call State Disaster Control 1077">
+    <span class="hotline-icon">🏛️</span>
+    <div class="hotline-details">
+      <span class="hotline-title">Disaster Control</span>
+      <span class="hotline-number">1077</span>
+    </div>
+  </a>
+</div>
+
+<!-- 4-CARD INTERACTIVE COMMUNITY ACTION HUB -->
+<div class="citizen-actions-grid">
+  <!-- Action 1: Report Incident -->
+  <a href="{{ url_for('citizen_report') }}" class="citizen-action-card">
+    <div>
+      <div class="citizen-action-header">
+        <div class="action-icon-circle" style="background:rgba(239, 68, 68, 0.16); color:#f87171;">
+          ⚠️
+        </div>
+        <span class="action-badge" style="background:rgba(239, 68, 68, 0.15); color:#fca5a5; border:1px solid rgba(239, 68, 68, 0.3);">
+          Rapid Dispatch
+        </span>
+      </div>
+      <h3 class="citizen-action-title">Report Local Incident</h3>
+      <p class="citizen-action-desc">
+        Report flash flooding, fallen trees, waterlogging, broken electrical cables, or stranded neighbors directly to response units.
+      </p>
+    </div>
+    <div class="citizen-action-link" style="color:#f87171;">
+      Submit Report in 30 Seconds ➔
+    </div>
+  </a>
+
+  <!-- Action 2: Evacuation & Relief Shelters -->
+  <a href="{{ url_for('citizen_evacuation') }}" class="citizen-action-card">
+    <div>
+      <div class="citizen-action-header">
+        <div class="action-icon-circle" style="background:rgba(16, 185, 129, 0.16); color:#34d399;">
+          🏃
+        </div>
+        <span class="action-badge" style="background:rgba(16, 185, 129, 0.15); color:#6ee7b7; border:1px solid rgba(16, 185, 129, 0.3);">
+          Live Shelters
+        </span>
+      </div>
+      <h3 class="citizen-action-title">Evacuation &amp; Relief Camps</h3>
+      <p class="citizen-action-desc">
+        Find designated dry relief centers, real-time available bed counts, food supplies, and safe transit routes clear of waterlogging.
+      </p>
+    </div>
+    <div class="citizen-action-link" style="color:#34d399;">
+      Find Nearest Shelter Route ➔
+    </div>
+  </a>
+
+  <!-- Action 3: Hospitals & Medical Facilities -->
+  <a href="{{ url_for('citizen_hospitals') }}" class="citizen-action-card">
+    <div>
+      <div class="citizen-action-header">
+        <div class="action-icon-circle" style="background:rgba(56, 189, 248, 0.16); color:#38bdf8;">
+          🏥
+        </div>
+        <span class="action-badge" style="background:rgba(56, 189, 248, 0.15); color:#7dd3fc; border:1px solid rgba(56, 189, 248, 0.3);">
+          Bed Tracker
+        </span>
+      </div>
+      <h3 class="citizen-action-title">Emergency Hospitals</h3>
+      <p class="citizen-action-desc">
+        Locate functioning hospitals with available emergency triage, ICU beds, oxygen, and emergency ambulance contacts.
+      </p>
+    </div>
+    <div class="citizen-action-link" style="color:#38bdf8;">
+      View Operational Hospitals ➔
+    </div>
+  </a>
+
+  <!-- Action 4: Ask Nirvaha AI Assistant -->
+  <a href="{{ url_for('citizen_chat') }}" class="citizen-action-card">
+    <div>
+      <div class="citizen-action-header">
+        <div class="action-icon-circle" style="background:rgba(168, 85, 247, 0.16); color:#c084fc;">
+          💬
+        </div>
+        <span class="action-badge" style="background:rgba(168, 85, 247, 0.15); color:#d8b4fe; border:1px solid rgba(168, 85, 247, 0.3);">
+          24/7 AI Guide
+        </span>
+      </div>
+      <h3 class="citizen-action-title">Ask Nirvaha Safety AI</h3>
+      <p class="citizen-action-desc">
+        Ask natural questions: "Is Bellandur road submerged?", "What should I pack for cyclone warning?", or get localized advice.
+      </p>
+    </div>
+    <div class="citizen-action-link" style="color:#c084fc;">
+      Open Citizen Assistant ➔
+    </div>
+  </a>
+</div>
+
+<!-- INTERACTIVE DISTRICT RISK & HAZARD RADAR -->
+<div class="citizen-radar-card">
+  <div class="radar-header">
+    <div class="radar-title-group">
+      <h2><span>📡</span> District Risk &amp; Hazard Radar</h2>
+      <p>Continuous sensor telemetry: rainfall rates, wind velocity, and predictive flood scoring.</p>
+    </div>
+    <div class="radar-filter-tabs">
+      <button type="button" class="radar-tab active" onclick="setRiskFilter('all')" id="tab-all">All Districts</button>
+      {% if home_zone %}
+      <button type="button" class="radar-tab" onclick="setRiskFilter('home')" id="tab-home">📍 My District</button>
+      {% endif %}
+      <button type="button" class="radar-tab" onclick="setRiskFilter('alert')" id="tab-alert">⚠️ Alerts Only</button>
+    </div>
+  </div>
+
+  <div id="risk-list">
+    <div class="empty-state" style="padding: 24px; text-align:center; color:#94a3b8;">
+      Scanning neighborhood sensor telemetry…
+    </div>
+  </div>
+</div>
+
+<!-- INTERACTIVE HOUSEHOLD EMERGENCY PREPAREDNESS CHECKLIST -->
+<div class="citizen-checklist-card">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+    <div>
+      <h2 style="font-family:'Outfit', sans-serif; font-size:18px; font-weight:700; color:#ffffff; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
+        <span>🎒</span> Household Disaster Readiness Checklist
+      </h2>
+      <p style="font-size:13px; color:#94a3b8; margin:0;">
+        Prepare these essentials before severe storms or flooding reach your district. Checked items save automatically.
+      </p>
+    </div>
+    <span id="checklist-progress-text" style="font-size:12px; font-weight:700; color:#34d399; background:rgba(16,185,129,0.12); padding:4px 10px; border-radius:9999px; border:1px solid rgba(16,185,129,0.25);">
+      0 / 5 Ready
+    </span>
+  </div>
+
+  <div class="checklist-progress-bar">
+    <div class="checklist-progress-fill" id="checklist-progress-fill" style="width: 0%;"></div>
+  </div>
+
+  <div class="checklist-items">
+    <label class="checklist-item" id="chk-item-1">
+      <input type="checkbox" onchange="toggleChecklistItem(1)" id="chk-box-1">
+      <span><strong>Water &amp; Food:</strong> 3-day supply of drinking water (2-3 liters/person/day) and ready-to-eat dry foods</span>
+    </label>
+    <label class="checklist-item" id="chk-item-2">
+      <input type="checkbox" onchange="toggleChecklistItem(2)" id="chk-box-2">
+      <span><strong>Power &amp; Comm:</strong> Fully charged mobile phone, backup power banks, and battery-operated torch / flashlight</span>
+    </label>
+    <label class="checklist-item" id="chk-item-3">
+      <input type="checkbox" onchange="toggleChecklistItem(3)" id="chk-box-3">
+      <span><strong>Medical Kit:</strong> 7-day essential prescription medicines, antiseptic liquid, bandages, and emergency ORS</span>
+    </label>
+    <label class="checklist-item" id="chk-item-4">
+      <input type="checkbox" onchange="toggleChecklistItem(4)" id="chk-box-4">
+      <span><strong>Important Papers:</strong> National IDs, property papers, insurance, and medical records sealed in waterproof ziplock</span>
+    </label>
+    <label class="checklist-item" id="chk-item-5">
+      <input type="checkbox" onchange="toggleChecklistItem(5)" id="chk-box-5">
+      <span><strong>Safety Essentials:</strong> High-decibel whistle (for rescue signaling), emergency cash, and sturdy rainwear/boots</span>
+    </label>
+  </div>
+</div>
+
+<!-- OFFICIAL WHATSAPP BROADCAST CHANNEL ENROLLMENT INFO -->
+<div class="citizen-whatsapp-banner">
+  <div style="display:flex; align-items:center; gap:12px;">
+    <span style="font-size:24px; line-height:1;">📱</span>
+    <div>
+      <div style="font-size:13.5px; font-weight:700; color:#34d399;">
+        Official WhatsApp Community Broadcast Channel Active
+      </div>
+      <div style="font-size:12px; color:#cbd5e1; margin-top:2px;">
+        Critical life-safety advisories, evacuation alarms, and shelter updates are pushed directly to registered mobile numbers.
+      </div>
+    </div>
+  </div>
+  <div style="display:inline-flex; align-items:center; gap:8px; font-size:12px; color:#34d399; background:rgba(16,185,129,0.15); padding:6px 12px; border-radius:8px; border:1px solid rgba(16,185,129,0.3); font-family:'JetBrains Mono', monospace; font-weight:600;">
+    <span>🟢 Nirvaha (+1 415 523 8886)</span>
   </div>
 </div>
 {% endblock %}

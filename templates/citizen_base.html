@@ -9,23 +9,23 @@
       <a href="{{ url_for('citizen_home') }}" class="citizen-brand">
         <div class="brand-mark" style="width:28px; height:28px;">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px;">
-            <path d="M12 2L3 6.5V12C3 17 6.75 21.5 12 23C17.25 21.5 21 17 21 12V6.5L12 2Z" stroke="#0B1220" stroke-width="1.8" stroke-linejoin="round"/>
-            <path d="M9 16C9 13.3 12 13.3 12 10.6C12 7.9 15 7.9 15 6.5" fill="none" stroke="#0B1220" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="15" cy="6.5" r="1.15" fill="#0B1220"/>
-            <circle cx="9" cy="16" r="1" fill="#0B1220"/>
+            <path d="M12 2L3 6.5V12C3 17 6.75 21.5 12 23C17.25 21.5 21 17 21 12V6.5L12 2Z" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M9 16C9 13.3 12 13.3 12 10.6C12 7.9 15 7.9 15 6.5" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="15" cy="6.5" r="1.15" fill="#FFFFFF"/>
+            <circle cx="9" cy="16" r="1" fill="#FFFFFF"/>
           </svg>
         </div>
         <span>Nirvaha <span class="citizen-brand-sub">Community</span></span>
       </a>
       <nav class="citizen-nav">
         <a href="{{ url_for('citizen_home') }}" class="citizen-nav-link {% if request.path == '/citizen' %}active{% endif %}">Home</a>
-        <a href="{{ url_for('citizen_report') }}" class="citizen-nav-link {% if request.path == '/citizen/report' %}active{% endif %}" style="color: #FF5470; font-weight:600;">⚠️ Report Incident</a>
+        <a href="{{ url_for('citizen_report') }}" class="citizen-nav-link report-pill {% if request.path == '/citizen/report' %}active{% endif %}">⚠️ Report Incident</a>
         <a href="{{ url_for('citizen_evacuation') }}" class="citizen-nav-link {% if request.path == '/citizen/evacuation' %}active{% endif %}">Evacuation</a>
         <a href="{{ url_for('citizen_hospitals') }}" class="citizen-nav-link {% if request.path == '/citizen/hospitals' %}active{% endif %}">Hospitals</a>
         <a href="{{ url_for('citizen_chat') }}" class="citizen-nav-link {% if request.path == '/citizen/chat' %}active{% endif %}">Ask Nirvaha</a>
       </nav>
       <div class="citizen-user">
-        <span>{{ current_user or "Resident" }}</span>
+        <span class="citizen-user-badge">👤 {{ session.get('user_name') or current_user or "Resident" }}</span>
         <a href="{{ url_for('logout') }}" class="logout-link">Sign out</a>
       </div>
     </header>

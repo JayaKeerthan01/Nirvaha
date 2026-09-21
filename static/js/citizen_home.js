@@ -1,9 +1,25 @@
+let allZonesData = [];
+let currentFilter = 'all';
+
 function riskWord(level) {
   return { Low: "All clear", Medium: "Stay alert", High: "Take action" }[level] || level;
 }
 
+function riskColor(level) {
+  return { Low: "#10b981", Medium: "#f59e0b", High: "#f43f5e" }[level] || "#38bdf8";
+}
+
+function setRiskFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.radar-tab').forEach(tab => tab.classList.remove('active'));
+  const activeTab = document.getElementById('tab-' + filter);
+  if (activeTab) activeTab.classList.add('active');
+  renderRiskList(allZonesData);
+}
+
 function updateEmergencyBanner(zones) {
   const banner = document.getElementById("citizen-emergency-banner");
+  const statusPill = document.getElementById("citizen-network-status");
   if (!banner) return;
 
   const homeZone = window.USER_HOME_ZONE;
@@ -11,63 +27,218 @@ function updateEmergencyBanner(zones) {
   const homeZoneRisk = homeZone ? zones.find((z) => z.zone.toLowerCase() === homeZone.toLowerCase()) : null;
 
   if (homeZoneRisk && homeZoneRisk.risk_level === "High") {
+    if (statusPill) statusPill.textContent = "High Advisory in Your Area";
     banner.style.display = "block";
     banner.innerHTML = `
       <div class="citizen-alert-banner banner-high">
-        <div class="banner-icon-pulse">🚨</div>
+        <div style="font-size:32px; line-height:1;">⚠️</div>
         <div class="banner-body">
-          <div class="banner-headline">CRITICAL DISASTER ALERT: ${homeZoneRisk.zone.toUpperCase()}</div>
-          <div class="banner-sub">${homeZoneRisk.prediction} detected in your registered home area. Take immediate precautions, secure essentials, and locate your nearest safe shelter.</div>
+          <div class="banner-headline" style="font-size:16px; font-weight:700; color:#ffffff; margin-bottom:4px;">
+            SEVERE WEATHER ADVISORY: ${homeZoneRisk.zone.toUpperCase()}
+          </div>
+          <div class="banner-sub" style="font-size:13.5px; color:#f1f5f9; line-height:1.4;">
+            ${homeZoneRisk.prediction} detected in your registered neighborhood. Avoid unnecessary road transit, stay on upper floors if waterlogging occurs, and know your nearest relief camp.
+          </div>
         </div>
-        <a href="/citizen/evacuation" class="btn btn-primary banner-action-btn">View Shelter Route</a>
+        <a href="/citizen/evacuation" class="btn btn-primary" style="white-space:nowrap; padding:10px 18px; border-radius:10px; background:#f43f5e; border:none; font-weight:700;">
+          Nearest Shelter Route ➔
+        </a>
       </div>
     `;
   } else if (highRiskZones.length > 0) {
+    if (statusPill) statusPill.textContent = "Regional Weather Advisory";
     banner.style.display = "block";
     const zoneNames = highRiskZones.map((z) => z.zone).join(", ");
     banner.innerHTML = `
       <div class="citizen-alert-banner banner-warning">
-        <div class="banner-icon-pulse">⚠</div>
+        <div style="font-size:28px; line-height:1;">📢</div>
         <div class="banner-body">
-          <div class="banner-headline">REGIONAL SEVERE WEATHER ADVISORY</div>
-          <div class="banner-sub">Severe conditions reported in: <strong>${zoneNames}</strong>. Avoid transit through affected corridors.</div>
+          <div class="banner-headline" style="font-size:15px; font-weight:700; color:#ffffff; margin-bottom:4px;">
+            REGIONAL ADVISORY: ACTIVE IN ${highRiskZones.length} DISTRICT(S)
+          </div>
+          <div class="banner-sub" style="font-size:13px; color:#cbd5e1; line-height:1.4;">
+            Severe rain & storm conditions detected in: <strong>${zoneNames}</strong>. Neighboring transport corridors may face severe delays or temporary closures.
+          </div>
         </div>
-        <a href="/citizen/evacuation" class="btn btn-ghost banner-action-btn">Evacuation Guide</a>
+        <a href="/citizen/evacuation" class="btn btn-ghost" style="white-space:nowrap; padding:8px 16px; border-radius:10px; border-color:rgba(245,158,11,0.4); color:#fbbf24;">
+          View Safe Routes ➔
+        </a>
       </div>
     `;
   } else {
+    if (statusPill) statusPill.textContent = "Civic Alert Grid Active • Normal";
     banner.style.display = "none";
   }
 }
 
+function renderRiskList(zones) {
+  const container = document.getElementById("risk-list");
+  if (!container) return;
+
+  let filtered = [...zones];
+  const homeZone = window.USER_HOME_ZONE;
+
+  if (currentFilter === 'home') {
+    filtered = filtered.filter(z => homeZone && z.zone.toLowerCase() === homeZone.toLowerCase());
+  } else if (currentFilter === 'alert') {
+    filtered = filtered.filter(z => z.risk_level === 'High' || z.risk_level === 'Medium');
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 14px;">
+        ${currentFilter === 'alert' ? '✨ No active alerts right now! All districts report safe conditions.' : 'No districts found.'}
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = "";
+  filtered
+    .sort((a, b) => b.risk_score - a.risk_score)
+    .forEach((w) => {
+      const isHome = homeZone && w.zone.toLowerCase() === homeZone.toLowerCase();
+      const statusWord = riskWord(w.risk_level);
+      const color = riskColor(w.risk_level);
+
+      const item = document.createElement("div");
+      item.className = `citizen-risk-item risk-${w.risk_level.toLowerCase()} ${isHome ? 'is-home-zone' : ''}`;
+      item.innerHTML = `
+        <div style="flex:1; min-width:200px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-family:'Outfit', sans-serif; font-size:16px; font-weight:700; color:#ffffff;">
+              ${w.zone}
+            </span>
+            ${isHome ? '<span style="font-size:10.5px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); padding:2px 8px; border-radius:12px;">Your Home Area</span>' : ''}
+          </div>
+          <div style="font-size:13px; color:#cbd5e1; margin-bottom:6px;">
+            ${w.prediction}
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px; color:#94a3b8;">
+            <span>🌧️ <strong>${w.weather.rainfall_mm} mm</strong> rain</span>
+            <span>•</span>
+            <span>💨 <strong>${w.weather.wind_speed_kmh} km/h</strong> wind</span>
+            <span>•</span>
+            <span>🌡️ <strong>${w.weather.temperature_c}°C</strong></span>
+          </div>
+        </div>
+        <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span style="display:inline-flex; align-items:center; gap:6px; font-family:'Outfit', sans-serif; font-size:13px; font-weight:700; color:${color}; background:rgba(255,255,255,0.06); padding:4px 12px; border-radius:9999px; border:1px solid rgba(255,255,255,0.1);">
+            <span style="width:7px; height:7px; border-radius:50%; background:${color};"></span>
+            ${statusWord}
+          </span>
+          ${w.risk_level === 'High' ? '<a href="/citizen/evacuation" style="font-size:12px; color:#f87171; font-weight:600; text-decoration:none;">Shelter Guide ➔</a>' : ''}
+        </div>
+      `;
+      container.appendChild(item);
+    });
+}
+
 async function refreshCitizenRisk() {
   const container = document.getElementById("risk-list");
+  const timeLabel = document.getElementById("lastRefreshedTime");
   try {
     const zones = await getJSON("/api/weather");
+    allZonesData = zones;
     updateEmergencyBanner(zones);
+    renderRiskList(zones);
 
-    container.innerHTML = "";
-    zones
-      .sort((a, b) => b.risk_score - a.risk_score)
-      .forEach((w) => {
-        const isHome = window.USER_HOME_ZONE && w.zone.toLowerCase() === window.USER_HOME_ZONE.toLowerCase();
-        container.appendChild(
-          el(`
-            <div class="risk-card-lg risk-${w.risk_level.toLowerCase()} ${isHome ? 'risk-home-highlight' : ''}">
-              <div>
-                <div class="zone-name">${w.zone} ${isHome ? '<span class="badge badge-info" style="margin-left:6px; font-size:11px;">Your Area</span>' : ''}</div>
-                <div class="zone-detail">${w.prediction} · ${w.weather.rainfall_mm}mm rain · ${w.weather.wind_speed_kmh}km/h wind · ${w.weather.temperature_c}°C</div>
-              </div>
-              <div class="risk-word">${riskWord(w.risk_level)}</div>
-            </div>
-          `)
-        );
-      });
+    if (timeLabel) {
+      const now = new Date();
+      timeLabel.textContent = `Updated ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    }
   } catch (e) {
-    container.innerHTML = `<div class="empty-state">Couldn't load risk data. Try refreshing the page.</div>`;
-    console.error(e);
+    if (container && container.innerHTML.trim() === "") {
+      container.innerHTML = `<div style="padding:20px; text-align:center; color:#94a3b8;">Couldn't load risk data. Please try refreshing.</div>`;
+    }
+    console.error("Telemetry refresh error:", e);
   }
 }
+
+async function manualRefreshRisk() {
+  const icon = document.getElementById("refreshIcon");
+  if (icon) {
+    icon.style.transform = "rotate(360deg)";
+  }
+  await refreshCitizenRisk();
+  setTimeout(() => {
+    if (icon) icon.style.transform = "none";
+  }, 600);
+}
+
+/* ==========================================================================
+   Interactive Household Preparedness Checklist Logic (Saved to LocalStorage)
+   ========================================================================== */
+const CHECKLIST_STORAGE_KEY = "nirvaha_citizen_checklist_v1";
+
+function loadChecklistState() {
+  try {
+    const saved = localStorage.getItem(CHECKLIST_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveChecklistState(state) {
+  try {
+    localStorage.setItem(CHECKLIST_STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("Failed to save checklist state:", e);
+  }
+}
+
+function updateChecklistProgress() {
+  const state = loadChecklistState();
+  let count = 0;
+  const total = 5;
+
+  for (let i = 1; i <= total; i++) {
+    const isChecked = !!state[i];
+    const checkbox = document.getElementById(`chk-box-${i}`);
+    const item = document.getElementById(`chk-item-${i}`);
+
+    if (checkbox) checkbox.checked = isChecked;
+    if (item) {
+      if (isChecked) {
+        item.classList.add("checked");
+      } else {
+        item.classList.remove("checked");
+      }
+    }
+    if (isChecked) count++;
+  }
+
+  const pct = Math.round((count / total) * 100);
+  const fill = document.getElementById("checklist-progress-fill");
+  const text = document.getElementById("checklist-progress-text");
+
+  if (fill) fill.style.width = `${pct}%`;
+  if (text) {
+    if (count === total) {
+      text.textContent = `🎉 5 / 5 Fully Ready!`;
+      text.style.color = "#34d399";
+    } else {
+      text.textContent = `${count} / ${total} Ready (${pct}%)`;
+      text.style.color = count >= 3 ? "#38bdf8" : "#fbbf24";
+    }
+  }
+}
+
+function toggleChecklistItem(id) {
+  const state = loadChecklistState();
+  const checkbox = document.getElementById(`chk-box-${id}`);
+  if (checkbox) {
+    state[id] = checkbox.checked;
+    saveChecklistState(state);
+    updateChecklistProgress();
+  }
+}
+
+// Initial Kick-off
+document.addEventListener("DOMContentLoaded", () => {
+  updateChecklistProgress();
+});
 
 refreshCitizenRisk();
 setInterval(refreshCitizenRisk, POLL_INTERVAL_MS);
