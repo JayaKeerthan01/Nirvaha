@@ -2298,7 +2298,7 @@ body.role-citizen {
 }
 
 /* ==========================================================================
-   Tactical Wildfire Emergency Login Theme
+   Tactical Wildfire Emergency Login Theme (Clean, Crisp, Minimalist Glow)
    ========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -2313,8 +2313,7 @@ body.role-citizen {
   position: relative;
   background-color: #080a0f;
   background-image:
-    radial-gradient(ellipse at center top, rgba(234, 88, 12, 0.22) 0%, rgba(10, 12, 16, 0.75) 55%, rgba(6, 8, 12, 0.94) 100%),
-    linear-gradient(to bottom, rgba(12, 16, 24, 0.55) 0%, rgba(8, 10, 15, 0.88) 100%),
+    linear-gradient(to bottom, rgba(10, 14, 22, 0.72) 0%, rgba(6, 8, 12, 0.88) 100%),
     url('/static/img/wildfire_login_bg.jpg');
   background-size: cover;
   background-position: center 30%;
@@ -2325,18 +2324,7 @@ body.role-citizen {
   color: #f1f5f9;
 }
 
-/* Atmospheric ambient radial lighting */
-.login-wildfire::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 80% 40%, rgba(249, 115, 22, 0.15) 0%, transparent 45%),
-              radial-gradient(circle at 20% 75%, rgba(220, 38, 38, 0.12) 0%, transparent 40%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Floating Ember Sparks */
+/* Floating Ember Sparks (Clean & Subtle) */
 .ember-particles {
   position: absolute;
   inset: 0;
@@ -2350,15 +2338,14 @@ body.role-citizen {
   bottom: -20px;
   border-radius: 50%;
   background: #f97316;
-  box-shadow: 0 0 8px #f97316, 0 0 16px #ef4444;
   opacity: 0;
   animation: floatEmber 8s infinite ease-in;
 }
 
 @keyframes floatEmber {
   0% { transform: translateY(0) translateX(0) scale(0.8); opacity: 0; }
-  15% { opacity: 0.85; }
-  85% { opacity: 0.6; }
+  15% { opacity: 0.7; }
+  85% { opacity: 0.5; }
   100% { transform: translateY(-110vh) translateX(60px) scale(0.2); opacity: 0; }
 }
 
@@ -2374,8 +2361,8 @@ body.role-citizen {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(234, 88, 12, 0.16);
-  border: 1px solid rgba(249, 115, 22, 0.4);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 6px 16px;
@@ -2386,7 +2373,6 @@ body.role-citizen {
   text-transform: uppercase;
   color: #fdba74;
   margin-bottom: 12px;
-  box-shadow: 0 0 25px -4px rgba(249, 115, 22, 0.35);
 }
 
 .wildfire-pulse-dot {
@@ -2394,13 +2380,6 @@ body.role-citizen {
   height: 7px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 10px #22c55e;
-  animation: pulseDot 2s infinite;
-}
-
-@keyframes pulseDot {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.35); opacity: 0.6; }
 }
 
 .wildfire-brand-title {
@@ -2409,10 +2388,7 @@ body.role-citizen {
   font-weight: 800;
   letter-spacing: -0.5px;
   margin: 0 0 4px;
-  background: linear-gradient(135deg, #ffffff 20%, #fed7aa 60%, #fb923c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 14px rgba(249, 115, 22, 0.3));
+  color: #ffffff;
 }
 
 .wildfire-brand-subtitle {
@@ -2420,34 +2396,27 @@ body.role-citizen {
   color: #cbd5e1;
   font-weight: 500;
   letter-spacing: 0.3px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
-/* Glassmorphism Tactical Login Card */
+/* Tactical Login Card (Clean Crisp Glass) */
 .login-card-wildfire {
   position: relative;
   z-index: 2;
   width: 100%;
   max-width: 440px;
-  background: rgba(13, 17, 26, 0.76);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  border-radius: 22px;
+  background: rgba(13, 17, 26, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
   padding: 32px 30px 28px;
-  box-shadow:
-    0 30px 80px -15px rgba(0, 0, 0, 0.88),
-    0 0 40px -10px rgba(249, 115, 22, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .login-card-wildfire:hover {
-  border-color: rgba(249, 115, 22, 0.48);
-  box-shadow:
-    0 35px 90px -15px rgba(0, 0, 0, 0.92),
-    0 0 50px -5px rgba(249, 115, 22, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  border-color: rgba(249, 115, 22, 0.35);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
 }
 
 /* Card Header */
@@ -2477,9 +2446,9 @@ body.role-citizen {
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(249, 115, 22, 0.15);
+  background: rgba(249, 115, 22, 0.12);
   color: #fb923c;
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.25);
 }
 
 /* Quick Role Switcher Pills */
@@ -2507,7 +2476,7 @@ body.role-citizen {
 
 .role-chip {
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 9px 6px;
   text-align: center;
@@ -2517,15 +2486,14 @@ body.role-citizen {
 }
 
 .role-chip:hover {
-  background: rgba(249, 115, 22, 0.14);
-  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(249, 115, 22, 0.3);
   transform: translateY(-1px);
 }
 
 .role-chip.active {
-  background: linear-gradient(135deg, rgba(234, 88, 12, 0.28) 0%, rgba(220, 38, 38, 0.22) 100%);
+  background: rgba(234, 88, 12, 0.2);
   border-color: #f97316;
-  box-shadow: 0 0 16px rgba(249, 115, 22, 0.35);
 }
 
 .role-chip-icon {
@@ -2581,17 +2549,17 @@ body.role-citizen {
 .wildfire-input {
   width: 100%;
   background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 10px;
   padding: 12px 14px 12px 40px;
   color: #f8fafc;
   font-size: 14px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 .wildfire-input:hover {
-  border-color: rgba(249, 115, 22, 0.45);
+  border-color: rgba(255, 255, 255, 0.25);
   background: rgba(15, 23, 42, 0.85);
 }
 
@@ -2599,7 +2567,7 @@ body.role-citizen {
   outline: none;
   border-color: #f97316;
   background: rgba(15, 23, 42, 0.95);
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25), 0 0 20px rgba(249, 115, 22, 0.2);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3);
 }
 
 .wildfire-input-wrap:focus-within .wildfire-input-icon {
@@ -2623,32 +2591,32 @@ body.role-citizen {
   color: #f8fafc;
 }
 
-/* Primary Button */
+/* Primary Button (Clean Shadow, No Glowing Halo) */
 .btn-wildfire-submit {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 12px;
-  padding: 14px 20px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 13px 20px;
   color: #ffffff;
   font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   cursor: pointer;
-  box-shadow: 0 6px 22px -3px rgba(234, 88, 12, 0.55), 0 0 20px rgba(249, 115, 22, 0.3);
-  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
   margin-top: 8px;
 }
 
 .btn-wildfire-submit:hover {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
   transform: translateY(-1px);
-  box-shadow: 0 10px 28px -3px rgba(234, 88, 12, 0.7), 0 0 32px rgba(249, 115, 22, 0.45);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
 .btn-wildfire-submit:active {
@@ -2659,7 +2627,7 @@ body.role-citizen {
 .credentials-drawer {
   margin-top: 18px;
   background: rgba(10, 14, 22, 0.7);
-  border: 1px dashed rgba(249, 115, 22, 0.35);
+  border: 1px dashed rgba(249, 115, 22, 0.25);
   border-radius: 10px;
   padding: 12px 14px;
   font-size: 11.5px;
@@ -2728,13 +2696,13 @@ body.role-citizen {
   gap: 12px;
   font-size: 11.5px;
   color: #cbd5e1;
-  background: rgba(13, 17, 26, 0.78);
+  background: rgba(13, 17, 26, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   padding: 8px 20px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   max-width: 90vw;
   flex-wrap: wrap;
   justify-content: center;
@@ -2760,14 +2728,13 @@ body.role-citizen {
 }
 
 /* ==========================================================================
-   Tactical Wildfire Landing Page Theme
+   Tactical Wildfire Landing Page Theme (Clean, Crisp, Minimalist Glow)
    ========================================================================== */
 body.landing-wildfire {
   min-height: 100vh;
   background-color: #080a0f;
   background-image:
-    radial-gradient(ellipse at center top, rgba(234, 88, 12, 0.22) 0%, rgba(10, 12, 16, 0.78) 55%, rgba(6, 8, 12, 0.95) 100%),
-    linear-gradient(to bottom, rgba(12, 16, 24, 0.58) 0%, rgba(8, 10, 15, 0.92) 100%),
+    linear-gradient(to bottom, rgba(10, 14, 22, 0.72) 0%, rgba(6, 8, 12, 0.9) 100%),
     url('/static/img/wildfire_login_bg.jpg');
   background-size: cover;
   background-position: center 25%;
@@ -2779,16 +2746,6 @@ body.landing-wildfire {
   position: relative;
 }
 
-body.landing-wildfire::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(circle at 80% 35%, rgba(249, 115, 22, 0.14) 0%, transparent 50%),
-              radial-gradient(circle at 20% 70%, rgba(220, 38, 38, 0.12) 0%, transparent 45%);
-  pointer-events: none;
-  z-index: 0;
-}
-
 .landing-wildfire .public-nav {
   position: sticky;
   top: 0;
@@ -2797,16 +2754,15 @@ body.landing-wildfire::before {
   align-items: center;
   justify-content: space-between;
   padding: 18px 40px;
-  background: rgba(10, 14, 22, 0.72);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(249, 115, 22, 0.25);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background: rgba(10, 14, 22, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .landing-wildfire .brand-mark {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
-  box-shadow: 0 0 15px rgba(249, 115, 22, 0.4);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
 }
 
 .landing-wildfire .brand-name {
@@ -2838,10 +2794,10 @@ body.landing-wildfire::before {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(234, 88, 12, 0.18);
-  border: 1px solid rgba(249, 115, 22, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 6px 16px;
   border-radius: 9999px;
   font-family: 'JetBrains Mono', monospace;
@@ -2851,7 +2807,6 @@ body.landing-wildfire::before {
   text-transform: uppercase;
   color: #fdba74;
   margin-bottom: 22px;
-  box-shadow: 0 0 20px -3px rgba(249, 115, 22, 0.35);
 }
 
 .landing-wildfire .hero h1 {
@@ -2862,19 +2817,15 @@ body.landing-wildfire::before {
   letter-spacing: -1px;
   margin: 0 0 22px;
   max-width: 860px;
-  background: linear-gradient(135deg, #ffffff 30%, #fed7aa 70%, #fb923c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.8));
+  color: #ffffff;
 }
 
 .landing-wildfire .hero p {
   font-size: 17.5px;
-  color: #e2e8f0;
+  color: #cbd5e1;
   max-width: 660px;
   line-height: 1.65;
   margin-bottom: 38px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .landing-wildfire .hero-actions {
@@ -2884,28 +2835,29 @@ body.landing-wildfire::before {
   flex-wrap: wrap;
 }
 
+/* The hero primary button: clean dark shadow, ZERO glowing halo */
 .landing-wildfire .btn-hero-primary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 12px;
-  padding: 14px 24px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 13px 24px;
   color: #ffffff;
   font-family: 'Outfit', sans-serif;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.3px;
   text-decoration: none;
-  box-shadow: 0 8px 24px -3px rgba(234, 88, 12, 0.6), 0 0 25px rgba(249, 115, 22, 0.35);
-  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
 }
 
 .landing-wildfire .btn-hero-primary:hover {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px -3px rgba(234, 88, 12, 0.75), 0 0 35px rgba(249, 115, 22, 0.5);
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
   color: #ffffff;
 }
 
@@ -2913,64 +2865,63 @@ body.landing-wildfire::before {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: 12px;
-  padding: 14px 22px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 10px;
+  padding: 13px 22px;
   color: #f8fafc;
   font-family: 'Outfit', sans-serif;
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 .landing-wildfire .btn-hero-ghost:hover {
-  background: rgba(249, 115, 22, 0.15);
-  border-color: rgba(249, 115, 22, 0.45);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
   color: #ffffff;
 }
 
 .landing-wildfire .btn-nav-signup {
-  background: rgba(249, 115, 22, 0.12);
-  border: 1px solid rgba(249, 115, 22, 0.35);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #fdba74;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #f1f5f9;
   font-weight: 600;
-  padding: 9px 18px;
-  border-radius: 9px;
+  padding: 8px 18px;
+  border-radius: 8px;
   text-decoration: none;
   font-size: 13px;
   transition: all 0.2s ease;
 }
 
 .landing-wildfire .btn-nav-signup:hover {
-  background: rgba(249, 115, 22, 0.22);
-  border-color: #f97316;
+  background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
 }
 
 .landing-wildfire .btn-nav-signin {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border: none;
   color: #ffffff;
   font-weight: 700;
   padding: 9px 20px;
-  border-radius: 9px;
+  border-radius: 8px;
   text-decoration: none;
   font-size: 13px;
-  box-shadow: 0 4px 15px rgba(234, 88, 12, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   transition: all 0.2s ease;
 }
 
 .landing-wildfire .btn-nav-signin:hover {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
   color: #ffffff;
 }
 
@@ -2986,20 +2937,20 @@ body.landing-wildfire::before {
 }
 
 .landing-wildfire .feature-card {
-  background: rgba(13, 17, 26, 0.74);
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid rgba(249, 115, 22, 0.22);
-  border-radius: 16px;
+  background: rgba(13, 17, 26, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
   padding: 24px 22px;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  transition: all 0.25s ease;
 }
 
 .landing-wildfire .feature-card:hover {
-  border-color: rgba(249, 115, 22, 0.55);
-  transform: translateY(-4px);
-  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 30px -5px rgba(249, 115, 22, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(249, 115, 22, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
 }
 
 .landing-wildfire .feature-card h3 {
